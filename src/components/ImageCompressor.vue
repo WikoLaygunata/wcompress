@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch, inject } from 'vue'
+import { ref, onMounted, onUnmounted, onActivated, onDeactivated, computed, watch, inject } from 'vue'
 import imageCompression from 'browser-image-compression'
 
 const showToast = inject('showToast')
@@ -88,6 +88,10 @@ const processFile = (file) => {
     runCompression()
     showToast('Gambar Dimuat', `Ukuran asli: ${formatSize(file.size)}`)
   }
+  img.onerror = () => {
+    isCompressing.value = false
+    showToast('Gagal Membaca Gambar', 'Format file tidak didukung atau rusak.')
+  }
 }
 
 // Load Unsplash Mock Image
@@ -114,6 +118,10 @@ const loadMockImage = async () => {
     img.onload = () => {
       originalDim.value = `${img.naturalWidth} x ${img.naturalHeight}px`
       runCompression()
+    }
+    img.onerror = () => {
+      isCompressing.value = false
+      showToast('Gagal Membaca Gambar', 'Gagal memuat gambar contoh.')
     }
   } catch (err) {
     console.error(err)
@@ -154,6 +162,10 @@ const runCompression = async () => {
     img.onload = () => {
       compressedDim.value = `${img.naturalWidth} x ${img.naturalHeight}px`
       isCompressing.value = false
+    }
+    img.onerror = () => {
+      isCompressing.value = false
+      showToast('Gagal Membaca Gambar', 'Hasil kompresi tidak dapat dibaca.')
     }
   } catch (error) {
     console.error(error)
@@ -211,11 +223,18 @@ const clearImages = () => {
 }
 
 // Lifecycle Hooks
-onMounted(() => {
+onActivated(() => {
   window.addEventListener('mouseup', stopDrag)
   window.addEventListener('mousemove', onDrag)
   window.addEventListener('touchend', stopDrag)
   window.addEventListener('touchmove', onDrag)
+})
+
+onDeactivated(() => {
+  window.removeEventListener('mouseup', stopDrag)
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('touchend', stopDrag)
+  window.removeEventListener('touchmove', onDrag)
 })
 
 onUnmounted(() => {
@@ -624,8 +643,8 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    stroke-width="3.5"
-                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    stroke-width="2.5"
+                    d="M8 9l-4 3 4 3m8-6l4 3-4 3"
                   />
                 </svg>
               </div>

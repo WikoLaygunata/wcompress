@@ -10,13 +10,20 @@ const currentTab = ref('compressor')
 const isToastVisible = ref(false)
 const toastTitle = ref('')
 const toastDesc = ref('')
+let toastTimeout = null
 
 const showToast = (title, desc) => {
   toastTitle.value = title
   toastDesc.value = desc
   isToastVisible.value = true
-  setTimeout(() => {
+
+  if (toastTimeout) {
+    clearTimeout(toastTimeout)
+  }
+
+  toastTimeout = setTimeout(() => {
     isToastVisible.value = false
+    toastTimeout = null
   }, 4000)
 }
 
@@ -107,7 +114,7 @@ provide('showToast', showToast)
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 11-3-3 3 3 0 013 3z"
+              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
             />
           </svg>
           Kompresor Kustom
@@ -127,7 +134,7 @@ provide('showToast', showToast)
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
-              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+              d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
             />
           </svg>
           AI Hapus BG
@@ -136,8 +143,9 @@ provide('showToast', showToast)
 
       <!-- Feature Tab Rendering -->
       <transition name="fade" mode="out-in">
-        <ImageCompressor v-if="currentTab === 'compressor'" />
-        <BgRemover v-else-if="currentTab === 'bgremover'" />
+        <keep-alive>
+          <component :is="currentTab === 'compressor' ? ImageCompressor : BgRemover" />
+        </keep-alive>
       </transition>
     </main>
 
@@ -174,7 +182,11 @@ provide('showToast', showToast)
         <p>© 2026 wcompress.</p>
         <div class="flex gap-4">
           Dibuat oleh
-          <a href="https://wikolaygunata.vercel.app" target="_blank" class="hover:text-slate-300"
+          <a
+            href="https://wikolaygunata.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:text-slate-300"
             >Wiko Laygunata</a
           >
         </div>

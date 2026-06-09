@@ -17,8 +17,6 @@ self.onmessage = async (e) => {
         })
 
         // Use the dedicated 'background-removal' pipeline task.
-        // This handles model type mapping correctly for RMBG-1.4
-        // and returns a RawImage with RGBA channels (transparency baked in).
         segmentator = await pipeline('background-removal', 'Xenova/modnet', {
           progress_callback: (progressData) => {
             self.postMessage({ type: 'progress', data: progressData })

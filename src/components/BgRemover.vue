@@ -67,7 +67,7 @@ const initWorker = () => {
       if (data.status === 'progress') {
         const progress = Math.round(data.progress || 0)
         aiModelProgress.value = progress
-        aiModelStatusText.value = `Mengunduh model: ${progress}% (~${((progress / 100) * 6).toFixed(1)}MB / 6MB)`
+        aiModelStatusText.value = `Mengunduh model: ${progress}% (~${((progress / 100) * 25).toFixed(1)}MB / 25MB)`
       } else if (data.status === 'ready') {
         aiModelStatusText.value = 'Mengekstrak file model...'
       }
@@ -204,7 +204,15 @@ const renderOutput = (width, height, channels, imageData) => {
 
   exportCanvas.toBlob(
     (blob) => {
-      if (aiOutputUrl.value) URL.revokeObjectURL(aiOutputUrl.value)
+      if (!blob) {
+        aiIsProcessing.value = false
+        pendingAiProcess.value = false
+        showToast('Gagal Ekspor', 'Gagal membuat file output dari kanvas.')
+        return
+      }
+      if (aiOutputUrl.value && aiOutputUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(aiOutputUrl.value)
+      }
       aiOutputUrl.value = URL.createObjectURL(blob)
       outputFileSize.value = blob.size
 
@@ -239,7 +247,7 @@ const startMockBgremover = () => {
     }
     aiModelProgress.value = progress
     if (progress < 100) {
-      aiModelStatusText.value = `Mengunduh model (Simulasi): ${progress}% (~${((progress / 100) * 6).toFixed(1)}MB / 6MB)`
+      aiModelStatusText.value = `Mengunduh model (Simulasi): ${progress}% (~${((progress / 100) * 25).toFixed(1)}MB / 25MB)`
     }
   }, 150)
 }
@@ -247,7 +255,13 @@ const startMockBgremover = () => {
 const resetBgRemover = () => {
   aiFile.value = null
   aiMockActive.value = false
-  aiOutputUrl.value = ''
+
+  if (aiOutputUrl.value) {
+    if (aiOutputUrl.value.startsWith('blob:')) {
+      URL.revokeObjectURL(aiOutputUrl.value)
+    }
+    aiOutputUrl.value = ''
+  }
 
   if (aiOriginalUrl.value) {
     URL.revokeObjectURL(aiOriginalUrl.value)
@@ -258,7 +272,7 @@ const resetBgRemover = () => {
   aiModelStatusText.value = '0% (Menunggu Gambar / Aktivasi)'
   aiIsProcessing.value = false
   pendingAiProcess.value = false
-  
+
   lastResultData.value = null
   lastResultWidth.value = 0
   lastResultHeight.value = 0
@@ -277,15 +291,6 @@ const downloadBgOutput = () => {
   showToast('Unduhan Dimulai', `File ${ext.toUpperCase()} transparan berhasil disimpan.`)
 }
 
-onUnmounted(() => {
-  if (aiWorker) {
-    aiWorker.terminate()
-  }
-  if (aiOriginalUrl.value) URL.revokeObjectURL(aiOriginalUrl.value)
-  if (aiOutputUrl.value && aiOutputUrl.value.startsWith('blob:'))
-    URL.revokeObjectURL(aiOutputUrl.value)
-})
-
 const formatSize = (bytes) => {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
@@ -295,17 +300,44 @@ const formatSize = (bytes) => {
 // Watch feather, format, and quality to re-render on cached result
 const reRender = () => {
   if (lastResultData.value) {
-    renderOutput(lastResultWidth.value, lastResultHeight.value, lastResultChannels.value, lastResultData.value)
+    renderOutput(
+      lastResultWidth.value,
+      lastResultHeight.value,
+      lastResultChannels.value,
+      lastResultData.value,
+    )
   }
 }
 
-watch(feather, reRender)
+let reRenderTimeout = null
+const triggerReRender = () => {
+  if (reRenderTimeout) clearTimeout(reRenderTimeout)
+  reRenderTimeout = setTimeout(() => {
+    reRender()
+  }, 200)
+}
+
+watch(feather, triggerReRender)
 watch(outputFormat, reRender)
-watch(outputQuality, reRender)
+watch(outputQuality, triggerReRender)
+
+onUnmounted(() => {
+  if (aiWorker) {
+    aiWorker.terminate()
+    aiWorker = null
+  }
+  if (aiOriginalUrl.value) URL.revokeObjectURL(aiOriginalUrl.value)
+  if (aiOutputUrl.value && aiOutputUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(aiOutputUrl.value)
+  }
+})
 </script>
 
 <template>
-  <div id="panel-bgremover" class="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch">
+  <div
+    id="panel-bgremover"
+    class="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch"
+  >
     <!-- Left Info Panel (5 Cols) -->
     <div
       class="md:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 space-y-6 backdrop-blur-sm"
@@ -345,7 +377,7 @@ watch(outputQuality, reRender)
 
         <p class="text-xs text-slate-400 leading-relaxed">
           Model AI dijalankan sepenuhnya secara lokal menggunakan WebAssembly. Pengunduhan awal
-          sebesar <b class="text-slate-200">~6MB</b> diperlukan. File otomatis di-cache oleh
+          sebesar <b class="text-slate-200">~25MB</b> diperlukan. File otomatis di-cache oleh
           browser sehingga kunjungan berikutnya berjalan instan.
         </p>
 
@@ -423,7 +455,8 @@ watch(outputQuality, reRender)
             </div>
             <div class="space-y-0.5">
               <p class="text-xs text-slate-300 font-medium">
-                Drag & drop gambarmu atau <span class="text-brand-400 group-hover:underline">telusuri</span>
+                Drag & drop gambarmu atau
+                <span class="text-brand-400 group-hover:underline">telusuri</span>
               </p>
               <p class="text-[10px] text-slate-500">Mendukung JPEG, PNG, WEBP s.d 15MB</p>
             </div>
@@ -522,7 +555,11 @@ watch(outputQuality, reRender)
         <span
           >Output dikonversi ke
           <b class="text-slate-300">{{ outputFormat === 'webp' ? 'WebP' : 'PNG' }} Transparan</b>.
-          {{ outputFormat === 'webp' ? 'WebP menghasilkan file 5-10x lebih kecil dari PNG.' : 'PNG lossless, cocok untuk editing lebih lanjut.' }}</span
+          {{
+            outputFormat === 'webp'
+              ? 'WebP menghasilkan file 5-10x lebih kecil dari PNG.'
+              : 'PNG lossless, cocok untuk editing lebih lanjut.'
+          }}</span
         >
       </div>
     </div>
@@ -560,8 +597,8 @@ watch(outputQuality, reRender)
           <div class="space-y-1">
             <p class="text-sm font-semibold text-slate-300">Hapus Background AI</p>
             <p class="text-xs text-slate-500 max-w-xs">
-              Gunakan simulasi tombol di bawah untuk mencoba visual pemotongan instan, atau
-              upload gambar Anda di panel kiri.
+              Gunakan simulasi tombol di bawah untuk mencoba visual pemotongan instan, atau upload
+              gambar Anda di panel kiri.
             </p>
           </div>
           <button
@@ -601,7 +638,7 @@ watch(outputQuality, reRender)
               class="w-10 h-10 rounded-full border-4 border-slate-800 border-t-brand-500 animate-spin"
             ></div>
             <p class="text-xs font-semibold text-slate-300">AI sedang mengisolasi subjek...</p>
-            <p class="text-[10px] text-slate-500">Proses ini memakan waktu 1-3 detik saja.</p>
+            <p class="text-[10px] text-slate-500">Proses ini tidak akan memakan waktu lama.</p>
           </div>
 
           <div v-else class="absolute inset-0 bg-slate-950/40 flex items-center justify-center">
@@ -610,12 +647,7 @@ watch(outputQuality, reRender)
               @click="startActualBgRemoval"
               class="px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-brand-500/20 flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all"
             >
-              <svg
-                class="w-4 h-4 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -629,10 +661,7 @@ watch(outputQuality, reRender)
         </div>
 
         <!-- Visual Output of BG Remover -->
-        <div
-          v-else-if="aiOutputUrl"
-          class="absolute inset-0 p-4 flex items-center justify-center"
-        >
+        <div v-else-if="aiOutputUrl" class="absolute inset-0 p-4 flex items-center justify-center">
           <img
             :src="aiOutputUrl"
             class="max-w-full max-h-[85%] object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] transition-all duration-300"
@@ -669,7 +698,9 @@ watch(outputQuality, reRender)
           ]"
         >
           Unduh Hasil {{ outputFormat === 'webp' ? 'WebP' : 'PNG' }} Transparan
-          <span v-if="outputFileSize" class="text-[10px] opacity-70">({{ formatSize(outputFileSize) }})</span>
+          <span v-if="outputFileSize" class="text-[10px] opacity-70"
+            >({{ formatSize(outputFileSize) }})</span
+          >
         </button>
       </div>
     </div>
