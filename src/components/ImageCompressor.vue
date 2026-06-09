@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, onActivated, onDeactivated, computed, watch, inject } from 'vue'
 import imageCompression from 'browser-image-compression'
+import mockImageUrl from '../assets/hahaha.jpg'
 
 const showToast = inject('showToast')
 
@@ -94,17 +95,15 @@ const processFile = (file) => {
   }
 }
 
-// Load Unsplash Mock Image
+// Load Mock Image
 const loadMockImage = async () => {
   try {
     isCompressing.value = true
-    showToast('Memuat Gambar Contoh', 'Sedang mengunduh gambar daun dari Unsplash...')
+    showToast('Memuat Gambar Contoh', 'Sedang memuat gambar contoh dari aset lokal...')
 
-    const response = await fetch(
-      'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=800&q=80',
-    )
+    const response = await fetch(mockImageUrl)
     const blob = await response.blob()
-    const file = new File([blob], 'daun.jpg', { type: 'image/jpeg' })
+    const file = new File([blob], 'hahaha.jpg', { type: 'image/jpeg' })
 
     originalFile.value = file
     mockImageActive.value = true
@@ -267,7 +266,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
   <div id="panel-compressor" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
     <!-- Left Side: Control Panel (5 Columns) -->
     <div
-      class="lg:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 space-y-6 backdrop-blur-sm"
+      class="lg:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 space-y-6 backdrop-blur-sm transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
     >
       <div class="flex items-center justify-between pb-4 border-b border-slate-800">
         <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -517,7 +516,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
 
     <!-- Right Side: Live Interactive Preview Panel (7 Columns) -->
     <div
-      class="lg:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-6 backdrop-blur-sm h-full justify-between"
+      class="lg:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-6 backdrop-blur-sm h-full justify-between transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
     >
       <div>
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
@@ -632,7 +631,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
               @touchstart="startDrag"
             >
               <div
-                class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center shadow-lg shadow-brand-500/40 border border-white/20 select-none"
+                class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center border border-white/20 select-none pulse-glow-handle"
               >
                 <svg
                   class="w-4 h-4 pointer-events-none"

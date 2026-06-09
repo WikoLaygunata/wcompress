@@ -1,7 +1,15 @@
 <script setup>
-import { ref, watch, onUnmounted, inject } from 'vue'
+import { ref, watch, onUnmounted, inject, onActivated, onDeactivated } from 'vue'
+import mockImageUrl from '../assets/hahaha.jpg'
 
 const showToast = inject('showToast')
+
+const bgColorMode = ref('transparent')
+const selectedBgColor = ref('#ffffff')
+
+const comparisonPosition = ref(50)
+const isDragging = ref(false)
+const comparisonContainer = ref(null)
 
 const aiFile = ref(null)
 const aiOriginalUrl = ref('')
@@ -198,6 +206,18 @@ const renderOutput = (width, height, channels, imageData) => {
     exportCanvas = finalCanvas
   }
 
+  // Apply solid background color if color mode is selected
+  if (bgColorMode.value === 'color') {
+    const coloredCanvas = document.createElement('canvas')
+    coloredCanvas.width = width
+    coloredCanvas.height = height
+    const coloredCtx = coloredCanvas.getContext('2d')
+    coloredCtx.fillStyle = selectedBgColor.value
+    coloredCtx.fillRect(0, 0, width, height)
+    coloredCtx.drawImage(exportCanvas, 0, 0)
+    exportCanvas = coloredCanvas
+  }
+
   // Export using toBlob for better compression and memory efficiency
   const mimeType = outputFormat.value === 'webp' ? 'image/webp' : 'image/png'
   const quality = outputFormat.value === 'webp' ? outputQuality.value / 100 : undefined
@@ -226,35 +246,26 @@ const renderOutput = (width, height, channels, imageData) => {
 }
 
 // Start Mock simulation (No 24MB download required)
-const startMockBgremover = () => {
-  aiMockActive.value = true
-  let progress = 0
-  aiModelStatusText.value = 'Menghubungkan ke repository model...'
+// Load Mock Image for BG Remover
+const loadBgMockImage = () => {
+  aiMockActive.value = false
+  aiFile.value = { name: 'hahaha.jpg', size: 3086697 }
+  aiOutputUrl.value = ''
+  
+  if (aiOriginalUrl.value && aiOriginalUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(aiOriginalUrl.value)
+  }
+  aiOriginalUrl.value = mockImageUrl
 
-  const interval = setInterval(() => {
-    progress += Math.floor(Math.random() * 15) + 5
-    if (progress >= 100) {
-      progress = 100
-      clearInterval(interval)
-      aiModelStatusText.value = 'Model Siap (Simulasi)! Memproses gambar...'
-
-      setTimeout(() => {
-        // Mock transparency cutout of the Unsplash leaf
-        aiOutputUrl.value =
-          'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=800&q=80'
-        showToast('Simulasi Selesai', 'Latar belakang berhasil diisolasi (Mode Simulasi).')
-      }, 1500)
-    }
-    aiModelProgress.value = progress
-    if (progress < 100) {
-      aiModelStatusText.value = `Mengunduh model (Simulasi): ${progress}% (~${((progress / 100) * 25).toFixed(1)}MB / 25MB)`
-    }
-  }, 150)
+  showToast('Gambar Contoh Dimuat', 'Siap untuk diproses oleh AI Hapus BG.')
 }
 
 const resetBgRemover = () => {
   aiFile.value = null
   aiMockActive.value = false
+  bgColorMode.value = 'transparent'
+  selectedBgColor.value = '#ffffff'
+  comparisonPosition.value = 50
 
   if (aiOutputUrl.value) {
     if (aiOutputUrl.value.startsWith('blob:')) {
@@ -284,11 +295,13 @@ const downloadBgOutput = () => {
   const ext = outputFormat.value === 'webp' ? 'webp' : 'png'
   const a = document.createElement('a')
   a.href = aiOutputUrl.value
-  a.download = `wcompress_no_bg_${Date.now()}.${ext}`
+  const nameDesc = bgColorMode.value === 'transparent' ? 'no_bg' : 'color_bg'
+  a.download = `wcompress_${nameDesc}_${Date.now()}.${ext}`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
-  showToast('Unduhan Dimulai', `File ${ext.toUpperCase()} transparan berhasil disimpan.`)
+  const desc = bgColorMode.value === 'transparent' ? 'transparan' : 'warna solid'
+  showToast('Unduhan Dimulai', `File ${ext.toUpperCase()} ${desc} berhasil disimpan.`)
 }
 
 const formatSize = (bytes) => {
@@ -317,11 +330,54 @@ const triggerReRender = () => {
   }, 200)
 }
 
+// Slider drag logic
+const startDrag = (e) => {
+  isDragging.value = true
+  e.preventDefault()
+}
+
+const onDrag = (e) => {
+  if (!isDragging.value || !comparisonContainer.value) return
+  const rect = comparisonContainer.value.getBoundingClientRect()
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX
+  let position = ((clientX - rect.left) / rect.width) * 100
+  if (position < 0) position = 0
+  if (position > 100) position = 100
+  comparisonPosition.value = position
+}
+
+const stopDrag = () => {
+  isDragging.value = false
+}
+
+// Watchers for background mode and selected color
 watch(feather, triggerReRender)
 watch(outputFormat, reRender)
 watch(outputQuality, triggerReRender)
+watch(bgColorMode, reRender)
+watch(selectedBgColor, triggerReRender)
+
+// Lifecycle Hooks
+onActivated(() => {
+  window.addEventListener('mouseup', stopDrag)
+  window.addEventListener('mousemove', onDrag)
+  window.addEventListener('touchend', stopDrag)
+  window.addEventListener('touchmove', onDrag)
+})
+
+onDeactivated(() => {
+  window.removeEventListener('mouseup', stopDrag)
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('touchend', stopDrag)
+  window.removeEventListener('touchmove', onDrag)
+})
 
 onUnmounted(() => {
+  window.removeEventListener('mouseup', stopDrag)
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('touchend', stopDrag)
+  window.removeEventListener('touchmove', onDrag)
+
   if (aiWorker) {
     aiWorker.terminate()
     aiWorker = null
@@ -340,7 +396,7 @@ onUnmounted(() => {
   >
     <!-- Left Info Panel (5 Cols) -->
     <div
-      class="md:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 space-y-6 backdrop-blur-sm"
+      class="md:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 space-y-6 backdrop-blur-sm transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
     >
       <div class="flex items-center justify-between pb-4 border-b border-slate-800">
         <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -394,7 +450,7 @@ onUnmounted(() => {
           </div>
           <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
             <div
-              class="h-full bg-brand-500 rounded-full transition-all duration-300"
+              class="h-full bg-gradient-to-r from-brand-600 via-emerald-400 to-brand-500 rounded-full transition-all duration-300 animate-shimmer"
               :style="{ width: aiModelProgress + '%' }"
             ></div>
           </div>
@@ -483,6 +539,104 @@ onUnmounted(() => {
         />
       </div>
 
+      <!-- Latar Belakang (Background Replacer) -->
+      <div class="space-y-3">
+        <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider"
+          >Latar Belakang</label
+        >
+        <div class="flex gap-2">
+          <button
+            type="button"
+            @click="bgColorMode = 'transparent'"
+            :class="[
+              'flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center border cursor-pointer transition-all',
+              bgColorMode === 'transparent'
+                ? 'border-brand-500/50 bg-brand-500/15 text-brand-300'
+                : 'border-slate-800 bg-slate-950/40 text-slate-500 hover:border-slate-700',
+            ]"
+          >
+            Transparan
+          </button>
+          <button
+            type="button"
+            @click="bgColorMode = 'color'"
+            :class="[
+              'flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center border cursor-pointer transition-all',
+              bgColorMode === 'color'
+                ? 'border-brand-500/50 bg-brand-500/15 text-brand-300'
+                : 'border-slate-800 bg-slate-950/40 text-slate-500 hover:border-slate-700',
+            ]"
+          >
+            Warna Solid
+          </button>
+        </div>
+
+        <!-- Color Presets & Picker (Show when bgColorMode is 'color') -->
+        <div v-if="bgColorMode === 'color'" class="flex items-center gap-3 pt-1 px-1">
+          <button
+            type="button"
+            @click="selectedBgColor = '#ffffff'"
+            title="Putih (E-Commerce)"
+            class="w-6 h-6 rounded-full border cursor-pointer transition-all hover:scale-110 flex items-center justify-center"
+            :class="[
+              selectedBgColor === '#ffffff'
+                ? 'border-brand-500 ring-2 ring-brand-500/30'
+                : 'border-slate-700 hover:border-slate-500',
+            ]"
+            style="background-color: #ffffff;"
+          >
+            <span v-if="selectedBgColor === '#ffffff'" class="text-[9px] font-bold text-slate-900 font-mono">✓</span>
+          </button>
+          <button
+            type="button"
+            @click="selectedBgColor = '#ef4444'"
+            title="Merah (Pasfoto)"
+            class="w-6 h-6 rounded-full border cursor-pointer transition-all hover:scale-110 flex items-center justify-center"
+            :class="[
+              selectedBgColor === '#ef4444'
+                ? 'border-brand-500 ring-2 ring-brand-500/30'
+                : 'border-slate-700 hover:border-slate-500',
+            ]"
+            style="background-color: #ef4444;"
+          >
+            <span v-if="selectedBgColor === '#ef4444'" class="text-[9px] font-bold text-white font-mono">✓</span>
+          </button>
+          <button
+            type="button"
+            @click="selectedBgColor = '#2563eb'"
+            title="Biru (Pasfoto)"
+            class="w-6 h-6 rounded-full border cursor-pointer transition-all hover:scale-110 flex items-center justify-center"
+            :class="[
+              selectedBgColor === '#2563eb'
+                ? 'border-brand-500 ring-2 ring-brand-500/30'
+                : 'border-slate-700 hover:border-slate-500',
+            ]"
+            style="background-color: #2563eb;"
+          >
+            <span v-if="selectedBgColor === '#2563eb'" class="text-[9px] font-bold text-white font-mono">✓</span>
+          </button>
+          
+          <!-- Custom Color Picker -->
+          <div class="h-6 w-px bg-slate-800"></div>
+          
+          <div class="flex items-center gap-2 flex-grow">
+            <div class="relative w-6 h-6 rounded-full border border-slate-700 overflow-hidden cursor-pointer hover:scale-110 transition-all flex-shrink-0">
+              <input
+                type="color"
+                v-model="selectedBgColor"
+                class="absolute inset-[-4px] w-[calc(100%+8px)] h-[calc(100%+8px)] p-0 m-0 border-0 cursor-pointer"
+              />
+            </div>
+            <input
+              type="text"
+              v-model="selectedBgColor"
+              placeholder="#FFFFFF"
+              class="bg-slate-950 border border-slate-800 hover:border-slate-750 text-[11px] font-mono font-bold text-slate-300 rounded px-2 py-1 w-20 text-center uppercase focus:outline-none focus:border-brand-500/55 transition-all"
+            />
+          </div>
+        </div>
+      </div>
+
       <!-- Output Format -->
       <div class="space-y-3">
         <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider"
@@ -554,7 +708,7 @@ onUnmounted(() => {
         </svg>
         <span
           >Output dikonversi ke
-          <b class="text-slate-300">{{ outputFormat === 'webp' ? 'WebP' : 'PNG' }} Transparan</b>.
+          <b class="text-slate-300">{{ outputFormat === 'webp' ? 'WebP' : 'PNG' }} {{ bgColorMode === 'transparent' ? 'Transparan' : 'Warna Solid' }}</b>.
           {{
             outputFormat === 'webp'
               ? 'WebP menghasilkan file 5-10x lebih kecil dari PNG.'
@@ -566,11 +720,11 @@ onUnmounted(() => {
 
     <!-- Right Simulation Area (7 Cols) -->
     <div
-      class="md:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-6 backdrop-blur-sm h-full"
+      class="md:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-6 backdrop-blur-sm h-full transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
     >
       <!-- Display Grid -->
       <div
-        class="relative flex-grow min-h-[350px] rounded-xl border border-slate-800 overflow-hidden transparency-grid flex items-center justify-center select-none group"
+        class="relative flex-grow min-h-[350px] rounded-xl border border-slate-800 overflow-hidden bg-slate-950 flex items-center justify-center select-none group"
       >
         <!-- Fallback State (No Image loaded) -->
         <div
@@ -597,24 +751,24 @@ onUnmounted(() => {
           <div class="space-y-1">
             <p class="text-sm font-semibold text-slate-300">Hapus Background AI</p>
             <p class="text-xs text-slate-500 max-w-xs">
-              Gunakan simulasi tombol di bawah untuk mencoba visual pemotongan instan, atau upload
-              gambar Anda di panel kiri.
+              Gunakan gambar contoh di bawah jika Anda tidak ingin mengunggah file sendiri,
+              atau unggah gambar Anda di panel kiri.
             </p>
           </div>
           <button
             type="button"
-            @click="startMockBgremover"
+            @click="loadBgMockImage"
             class="px-5 py-2.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-lg shadow-brand-500/10 transition-all flex items-center gap-2 cursor-pointer border border-brand-500/20"
           >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="2.5"
-                d="M13 10V3L4 14h7v7l9-11h-7z"
+                stroke-width="2"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            Mulai Simulasi Hapus BG
+            Gunakan Gambar Contoh
           </button>
         </div>
 
@@ -660,23 +814,113 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Visual Output of BG Remover -->
-        <div v-else-if="aiOutputUrl" class="absolute inset-0 p-4 flex items-center justify-center">
-          <img
-            :src="aiOutputUrl"
-            class="max-w-full max-h-[85%] object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] transition-all duration-300"
-            alt="Cutout Output"
-          />
+        <!-- Visual Output of BG Remover (Before/After Slider) -->
+        <div
+          v-else-if="aiOutputUrl"
+          ref="comparisonContainer"
+          class="absolute inset-0 select-none cursor-ew-resize"
+        >
+          <!-- Left Side Image (Original) -->
+          <div class="absolute inset-0 p-4 flex items-center justify-center bg-slate-950">
+            <img
+              :src="aiOriginalUrl"
+              class="max-w-[calc(100%-2rem)] max-h-[85%] object-contain pointer-events-none"
+              alt="Original"
+            />
+          </div>
+
+          <!-- Right Side Image (Cutout - Clipped dynamically) -->
           <div
-            class="absolute left-4 top-4 bg-emerald-500/90 text-white text-[9px] uppercase font-bold tracking-wider px-2 py-1 rounded shadow"
+            class="absolute inset-0 overflow-hidden"
+            :class="{ 'transparency-grid': bgColorMode === 'transparent' }"
+            :style="{ 
+              clipPath: `inset(0 0 0 ${comparisonPosition}%)`
+            }"
           >
-            Latar Belakang Dihapus
+            <div class="absolute inset-0 p-4 flex items-center justify-center">
+              <img
+                :src="aiOutputUrl"
+                class="max-w-[calc(100%-2rem)] max-h-[85%] object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] pointer-events-none"
+                alt="Cutout Output"
+              />
+            </div>
+          </div>
+
+          <!-- Labels for Slider -->
+          <div
+            class="absolute left-4 top-4 bg-slate-950/80 backdrop-blur-md text-[10px] uppercase font-bold text-slate-400 border border-slate-800 px-2 py-1 rounded shadow"
+          >
+            Asli
+          </div>
+          <div
+            class="absolute right-4 top-4 bg-brand-950/80 backdrop-blur-md text-[10px] uppercase font-bold text-brand-400 border border-brand-500/30 px-2 py-1 rounded shadow"
+          >
+            Hasil Cutout
+          </div>
+
+          <!-- Draggable Comparison Bar -->
+          <div
+            class="absolute top-0 bottom-0 w-1 bg-brand-500 flex items-center justify-center pointer-events-auto"
+            :style="{ left: comparisonPosition + '%' }"
+            @mousedown="startDrag"
+            @touchstart="startDrag"
+          >
+            <div
+              class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center border border-white/20 select-none pulse-glow-handle"
+            >
+              <svg
+                class="w-4 h-4 pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2.5"
+                  d="M8 9l-4 3 4 3m8-6l4 3-4 3"
+                />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
 
+      <!-- Size Comparison Badge/Bar -->
+      <div
+        v-if="aiOriginalUrl"
+        class="flex items-center justify-between p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs"
+      >
+        <div class="flex items-center gap-4">
+          <div>
+            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Ukuran Asli</span>
+            <p class="font-bold text-slate-300 font-mono mt-0.5">{{ formatSize(aiFile?.size || 0) }}</p>
+          </div>
+          <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+          <div>
+            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Hasil Cutout</span>
+            <p class="font-bold font-mono mt-0.5" :class="aiOutputUrl ? 'text-brand-400' : 'text-slate-500 animate-pulse'">
+              {{ aiOutputUrl ? formatSize(outputFileSize) : 'Menunggu AI...' }}
+            </p>
+          </div>
+        </div>
+        
+        <!-- Efficiency Badge -->
+        <div v-if="aiOutputUrl && outputFileSize && aiFile?.size" class="text-right">
+          <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Perbandingan</span>
+          <p class="font-black font-mono text-xs mt-0.5" :class="outputFileSize <= aiFile.size ? 'text-emerald-400' : 'text-amber-400'">
+            {{ outputFileSize <= aiFile.size 
+              ? `-${Math.round((1 - (outputFileSize / aiFile.size)) * 100)}%` 
+              : `+${Math.round(((outputFileSize / aiFile.size) - 1) * 100)}%` 
+            }}
+          </p>
+        </div>
+      </div>
+
       <!-- Control Buttons for Output -->
-      <div class="flex gap-4 mt-6">
+      <div class="flex gap-4">
         <button
           type="button"
           @click="resetBgRemover"

@@ -32,7 +32,10 @@ provide('showToast', showToast)
 </script>
 
 <template>
-  <div class="bg-darkBg text-slate-100 min-h-screen font-sans flex flex-col antialiased">
+  <div class="bg-darkBg text-slate-100 min-h-screen font-sans flex flex-col antialiased relative overflow-hidden">
+    <!-- Ambient Glow Effects -->
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+    <div class="absolute top-1/4 right-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-[150px] pointer-events-none -z-10"></div>
     <!-- Header / Navbar -->
     <header
       class="border-b border-slate-800/80 bg-darkBg/80 backdrop-blur sticky top-0 z-50 transition-all duration-300"
@@ -53,7 +56,7 @@ provide('showToast', showToast)
           </div>
           <div>
             <h1
-              class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent"
+              class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent font-display"
             >
               wcompress
             </h1>
@@ -84,7 +87,7 @@ provide('showToast', showToast)
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
       <!-- Hero Section -->
       <div class="text-center max-w-2xl mx-auto space-y-3">
-        <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+        <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-display">
           Kompres Gambar Sepuasnya,
           <span class="bg-gradient-to-r from-brand-500 to-emerald-400 bg-clip-text text-transparent"
             >Tanpa Bayar</span
