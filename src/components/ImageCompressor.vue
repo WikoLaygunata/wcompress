@@ -85,7 +85,7 @@ const handleFileUpload = (e) => {
 
 const processFile = (file) => {
   if (!file.type.startsWith('image/')) {
-    showToast('File tidak valid', 'Mohon unggah file gambar saja.')
+    showToast('File tidak valid', 'Mohon unggah file gambar saja.', 'warning')
     return
   }
   originalFile.value = file
@@ -105,7 +105,7 @@ const processFile = (file) => {
   }
   img.onerror = () => {
     isCompressing.value = false
-    showToast('Gagal Membaca Gambar', 'Format file tidak didukung atau rusak.')
+    showToast('Gagal Membaca Gambar', 'Format file tidak didukung atau rusak.', 'error')
   }
 }
 
@@ -113,7 +113,7 @@ const processFile = (file) => {
 const loadMockImage = async () => {
   try {
     isCompressing.value = true
-    showToast('Memuat Gambar Contoh', 'Sedang memuat gambar contoh dari aset lokal...')
+    showToast('Memuat Gambar Contoh', 'Sedang memuat gambar contoh dari aset lokal...', 'info')
 
     const response = await fetch(mockImageUrl)
     const blob = await response.blob()
@@ -135,12 +135,12 @@ const loadMockImage = async () => {
     }
     img.onerror = () => {
       isCompressing.value = false
-      showToast('Gagal Membaca Gambar', 'Gagal memuat gambar contoh.')
+      showToast('Gagal Membaca Gambar', 'Gagal memuat gambar contoh.', 'error')
     }
   } catch (err) {
     console.error(err)
     isCompressing.value = false
-    showToast('Gagal Memuat', 'Gagal mengambil gambar contoh dari internet.')
+    showToast('Gagal Memuat', 'Gagal mengambil gambar contoh dari internet.', 'error')
   }
 }
 
@@ -179,12 +179,12 @@ const runCompression = async () => {
     }
     img.onerror = () => {
       isCompressing.value = false
-      showToast('Gagal Membaca Gambar', 'Hasil kompresi tidak dapat dibaca.')
+      showToast('Gagal Membaca Gambar', 'Hasil kompresi tidak dapat dibaca.', 'error')
     }
   } catch (error) {
     console.error(error)
     isCompressing.value = false
-    showToast('Gagal Kompresi', 'Terjadi kesalahan saat mengompresi gambar.')
+    showToast('Gagal Kompresi', 'Terjadi kesalahan saat mengompresi gambar.', 'error')
   }
 }
 
@@ -373,10 +373,10 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             type="button"
             @click="setFormat('webp')"
             :class="[
-              'py-2.5 px-3 text-xs rounded-lg transition-all cursor-pointer font-semibold',
+              'py-2 px-3 text-xs rounded-lg border transition-all duration-200 cursor-pointer font-semibold',
               selectedFormat === 'webp'
-                ? 'font-bold border border-brand-500 bg-brand-500/10 text-brand-400'
-                : 'border border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             WEBP
@@ -385,10 +385,10 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             type="button"
             @click="setFormat('jpeg')"
             :class="[
-              'py-2.5 px-3 text-xs rounded-lg transition-all cursor-pointer font-semibold',
+              'py-2 px-3 text-xs rounded-lg border transition-all duration-200 cursor-pointer font-semibold',
               selectedFormat === 'jpeg'
-                ? 'font-bold border border-brand-500 bg-brand-500/10 text-brand-400'
-                : 'border border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             JPEG
@@ -397,10 +397,10 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             type="button"
             @click="setFormat('png')"
             :class="[
-              'py-2.5 px-3 text-xs rounded-lg transition-all cursor-pointer font-semibold',
+              'py-2 px-3 text-xs rounded-lg border transition-all duration-200 cursor-pointer font-semibold',
               selectedFormat === 'png'
-                ? 'font-bold border border-brand-500 bg-brand-500/10 text-brand-400'
-                : 'border border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             PNG
@@ -457,10 +457,10 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             type="button"
             @click="setWidthPreset(800)"
             :class="[
-              'py-2 px-1 text-[11px] font-semibold rounded transition-all cursor-pointer border',
+              'py-2 px-1 text-[11px] font-semibold rounded border transition-all duration-200 cursor-pointer',
               customWidth === 800
-                ? 'font-bold bg-brand-500/10 border-brand-500/30 text-brand-400'
-                : 'border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             800px
@@ -469,10 +469,10 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             type="button"
             @click="setWidthPreset(1200)"
             :class="[
-              'py-2 px-1 text-[11px] font-semibold rounded transition-all cursor-pointer border',
+              'py-2 px-1 text-[11px] font-semibold rounded border transition-all duration-200 cursor-pointer',
               customWidth === 1200
-                ? 'font-bold bg-brand-500/10 border-brand-500/30 text-brand-400'
-                : 'border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             1200px
@@ -481,10 +481,10 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             type="button"
             @click="setWidthPreset(1920)"
             :class="[
-              'py-2 px-1 text-[11px] font-semibold rounded transition-all cursor-pointer border',
+              'py-2 px-1 text-[11px] font-semibold rounded border transition-all duration-200 cursor-pointer',
               customWidth === 1920
-                ? 'font-bold bg-brand-500/10 border-brand-500/30 text-brand-400'
-                : 'border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             1920px
@@ -494,7 +494,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
               type="number"
               v-model.number="customWidth"
               placeholder="Custom"
-              class="w-full text-center py-2 px-1 text-[11px] font-mono font-bold bg-slate-950 border border-slate-850 hover:border-slate-800 rounded text-slate-200 focus:outline-none focus:border-brand-500/55 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              class="w-full text-center py-2 px-1 text-[11px] font-mono font-bold bg-slate-950 border border-slate-800 hover:border-slate-700 rounded text-slate-200 focus:outline-none focus:border-brand-500/55 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         </div>
@@ -729,28 +729,39 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
         </div>
       </div>
 
-      <!-- Action Button -->
-      <button
-        type="button"
-        :disabled="!compressedUrl || isCompressing"
-        @click="downloadCompressed"
-        :class="[
-          'w-full py-4 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 mt-6 shadow-lg',
-          compressedUrl && !isCompressing
-            ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/10 hover:shadow-brand-500/20'
-            : 'bg-slate-800 text-slate-500 cursor-not-allowed',
-        ]"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2.5"
-            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-          />
-        </svg>
-        Unduh Gambar Hasil Kompresi
-      </button>
+      <!-- Action Buttons Group -->
+      <div class="flex gap-4 mt-6 w-full">
+        <button
+          v-if="originalUrl"
+          type="button"
+          @click="clearImages"
+          class="px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95 flex-shrink-0"
+        >
+          Reset
+        </button>
+        
+        <button
+          type="button"
+          :disabled="!compressedUrl || isCompressing"
+          @click="downloadCompressed"
+          :class="[
+            'flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
+            compressedUrl && !isCompressing
+              ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]'
+              : 'bg-slate-800 text-slate-500 cursor-not-allowed',
+          ]"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2.5"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            />
+          </svg>
+          Unduh Gambar Hasil Kompresi
+        </button>
+      </div>
     </div>
   </div>
 </template>

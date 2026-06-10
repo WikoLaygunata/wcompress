@@ -61,7 +61,7 @@ const handleAiFileUpload = (e) => {
 
 const processAiFile = (file) => {
   if (!file.type.startsWith('image/')) {
-    showToast('File tidak valid', 'Mohon unggah file gambar saja.')
+    showToast('File tidak valid', 'Mohon unggah file gambar saja.', 'warning')
     return
   }
   aiFile.value = file
@@ -113,7 +113,7 @@ const initWorker = () => {
     } else if (type === 'error') {
       aiIsProcessing.value = false
       aiIsLoadingModel.value = false
-      showToast('Error AI', `Gagal memproses: ${error}`)
+      showToast('Error AI', `Gagal memproses: ${error}`, 'error')
     }
   }
 }
@@ -136,12 +136,12 @@ const startActualBgRemoval = () => {
   }
 
   if (!aiOriginalUrl.value) {
-    showToast('Pilih Gambar', 'Silakan pilih gambar terlebih dahulu.')
+    showToast('Pilih Gambar', 'Silakan pilih gambar terlebih dahulu.', 'warning')
     return
   }
 
   aiIsProcessing.value = true
-  showToast('Memproses AI', 'Menghilangkan latar belakang di browser Anda...')
+  showToast('Memproses AI', 'Menghilangkan latar belakang di browser Anda...', 'info')
 
   // Post original image URI to Web Worker
   aiWorker.postMessage({
@@ -241,7 +241,7 @@ const renderOutput = (width, height, channels, imageData) => {
       if (!blob) {
         aiIsProcessing.value = false
         pendingAiProcess.value = false
-        showToast('Gagal Ekspor', 'Gagal membuat file output dari kanvas.')
+        showToast('Gagal Ekspor', 'Gagal membuat file output dari kanvas.', 'error')
         return
       }
       if (aiOutputUrl.value && aiOutputUrl.value.startsWith('blob:')) {
@@ -407,7 +407,7 @@ onUnmounted(() => {
 <template>
   <div
     id="panel-bgremover"
-    class="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch"
+    class="max-w-5xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch"
   >
     <!-- Left Info Panel (5 Cols) -->
     <div
@@ -564,10 +564,10 @@ onUnmounted(() => {
             type="button"
             @click="bgColorMode = 'transparent'"
             :class="[
-              'flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center border cursor-pointer transition-all',
+              'flex-1 py-2 px-3 rounded-lg text-xs font-semibold text-center border cursor-pointer transition-all duration-200',
               bgColorMode === 'transparent'
-                ? 'border-brand-500/50 bg-brand-500/15 text-brand-300'
-                : 'border-slate-800 bg-slate-950/40 text-slate-500 hover:border-slate-700',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             Transparan
@@ -576,10 +576,10 @@ onUnmounted(() => {
             type="button"
             @click="bgColorMode = 'color'"
             :class="[
-              'flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center border cursor-pointer transition-all',
+              'flex-1 py-2 px-3 rounded-lg text-xs font-semibold text-center border cursor-pointer transition-all duration-200',
               bgColorMode === 'color'
-                ? 'border-brand-500/50 bg-brand-500/15 text-brand-300'
-                : 'border-slate-800 bg-slate-950/40 text-slate-500 hover:border-slate-700',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             Warna Solid
@@ -646,7 +646,7 @@ onUnmounted(() => {
               type="text"
               v-model="selectedBgColor"
               placeholder="#FFFFFF"
-              class="bg-slate-950 border border-slate-800 hover:border-slate-750 text-[11px] font-mono font-bold text-slate-300 rounded px-2 py-1 w-20 text-center uppercase focus:outline-none focus:border-brand-500/55 transition-all"
+              class="bg-slate-950 border border-slate-800 hover:border-slate-700 text-[11px] font-mono font-bold text-slate-300 rounded px-2 py-1 w-20 text-center uppercase focus:outline-none focus:border-brand-500/55 transition-all"
             />
           </div>
         </div>
@@ -662,10 +662,10 @@ onUnmounted(() => {
             type="button"
             @click="outputFormat = 'webp'"
             :class="[
-              'flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center border cursor-pointer transition-all',
+              'flex-1 py-2 px-3 rounded-lg text-xs font-semibold text-center border cursor-pointer transition-all duration-200',
               outputFormat === 'webp'
-                ? 'border-brand-500/50 bg-brand-500/15 text-brand-300'
-                : 'border-slate-800 bg-slate-950/40 text-slate-500 hover:border-slate-700',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             WebP <span class="text-[9px] opacity-60">(Lebih Kecil)</span>
@@ -674,10 +674,10 @@ onUnmounted(() => {
             type="button"
             @click="outputFormat = 'png'"
             :class="[
-              'flex-1 py-2 px-3 rounded-lg text-xs font-bold text-center border cursor-pointer transition-all',
+              'flex-1 py-2 px-3 rounded-lg text-xs font-semibold text-center border cursor-pointer transition-all duration-200',
               outputFormat === 'png'
-                ? 'border-brand-500/50 bg-brand-500/15 text-brand-300'
-                : 'border-slate-800 bg-slate-950/40 text-slate-500 hover:border-slate-700',
+                ? 'border-brand-500 bg-brand-500/10 text-brand-400 shadow-inner'
+                : 'border-slate-800 bg-slate-950 text-slate-450 hover:text-slate-200 hover:border-slate-700/60',
             ]"
           >
             PNG <span class="text-[9px] opacity-60">(Lossless)</span>
@@ -936,14 +936,14 @@ onUnmounted(() => {
       </div>
 
       <!-- Control Buttons for Output -->
-      <div class="flex gap-4">
+      <div class="flex gap-4 w-full">
         <button
           type="button"
           @click="resetBgRemover"
           :disabled="!aiOriginalUrl"
-          class="px-4 py-3 border border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400 hover:text-slate-200 rounded-xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          class="px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 flex-shrink-0"
         >
-          Reset Gambar
+          Reset
         </button>
 
         <button
@@ -951,9 +951,9 @@ onUnmounted(() => {
           :disabled="!aiOutputUrl"
           @click="downloadBgOutput"
           :class="[
-            'flex-1 py-3 px-6 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2',
+            'flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
             aiOutputUrl
-              ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-lg shadow-brand-500/15'
+              ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]'
               : 'bg-slate-800 text-slate-500 cursor-not-allowed',
           ]"
         >
