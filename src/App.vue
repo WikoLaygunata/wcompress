@@ -4,6 +4,7 @@ import ImageCompressor from './components/ImageCompressor.vue'
 import BgRemover from './components/BgRemover.vue'
 import PdfTools from './components/PdfTools.vue'
 import qrisImage from './assets/qris.webp'
+import logoImage from './assets/logo.png'
 
 const tabComponents = { compressor: ImageCompressor, bgremover: BgRemover, pdftools: PdfTools }
 
@@ -88,18 +89,11 @@ provide('showToast', showToast)
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div
-            class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-brand-500/20"
-          >
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2.5"
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
+          <img
+            :src="logoImage"
+            class="w-9 h-9 rounded-xl object-cover shadow-lg shadow-brand-500/15 border border-slate-800"
+            alt="wcompress logo"
+          />
           <div>
             <h1
               class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent font-display"
