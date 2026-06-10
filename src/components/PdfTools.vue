@@ -710,12 +710,12 @@ onUnmounted(() => {
         </div>
 
         <!-- Action Buttons Group -->
-        <div class="flex gap-4 w-full">
+        <div class="flex flex-col sm:flex-row gap-3 w-full">
           <button
             v-if="pdfFile"
             type="button"
             @click="resetPdfCompressor()"
-            class="px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95 flex-shrink-0"
+            class="w-full sm:w-auto px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 justify-center cursor-pointer active:scale-95 flex-shrink-0"
           >
             Reset
           </button>
@@ -725,7 +725,7 @@ onUnmounted(() => {
             :disabled="!compressedPdfUrl"
             @click="downloadCompressedPdf"
             :class="[
-              'flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
+              'w-full sm:flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
               compressedPdfUrl
                 ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]'
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed',
@@ -844,12 +844,12 @@ onUnmounted(() => {
 
         <!-- Convert Button -->
         <!-- Convert Action Buttons Group -->
-        <div class="flex gap-4 w-full">
+        <div class="flex flex-col sm:flex-row gap-3 w-full">
           <button
             v-if="images.length > 0"
             type="button"
             @click="resetImages"
-            class="px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95 flex-shrink-0"
+            class="w-full sm:w-auto px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 justify-center cursor-pointer active:scale-95 flex-shrink-0"
           >
             Hapus Semua
           </button>
@@ -859,7 +859,7 @@ onUnmounted(() => {
             :disabled="images.length === 0 || isConverting"
             @click="convertToPdf"
             :class="[
-              'flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
+              'w-full sm:flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
               images.length > 0 && !isConverting
                 ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]'
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed',
@@ -1017,30 +1017,32 @@ onUnmounted(() => {
         </div>
 
         <!-- Action Buttons Group (when PDF is generated) -->
-        <div v-if="convertedPdfUrl" class="flex gap-4 w-full">
-          <button
-            type="button"
-            @click="backToImageEditing"
-            class="px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95 flex-shrink-0"
-          >
-            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Edit Kembali
-          </button>
+        <div v-if="convertedPdfUrl" class="flex flex-col sm:flex-row gap-3 w-full">
+          <div class="flex gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              @click="backToImageEditing"
+              class="flex-grow sm:flex-grow-0 px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 justify-center cursor-pointer active:scale-95 flex-shrink-0"
+            >
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Edit Kembali
+            </button>
 
-          <button
-            type="button"
-            @click="resetImages"
-            class="px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95 flex-shrink-0"
-          >
-            Reset
-          </button>
+            <button
+              type="button"
+              @click="resetImages"
+              class="flex-grow sm:flex-grow-0 px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 justify-center cursor-pointer active:scale-95 flex-shrink-0"
+            >
+              Reset
+            </button>
+          </div>
           
           <button
             type="button"
             @click="downloadConvertedPdf"
-            class="flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]"
+            class="w-full sm:flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

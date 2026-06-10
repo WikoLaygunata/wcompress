@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, provide } from 'vue'
+import { ref, computed, provide, onMounted } from 'vue'
 import ImageCompressor from './components/ImageCompressor.vue'
 import BgRemover from './components/BgRemover.vue'
 import PdfTools from './components/PdfTools.vue'
@@ -67,9 +67,65 @@ const faqs = ref([
 const toggleFaq = (index) => {
   faqs.value[index].isOpen = !faqs.value[index].isOpen
 }
-
 // Provide toast method to child components
 provide('showToast', showToast)
+
+// ─── PWA INSTALLATION LOGIC ───
+const deferredPrompt = ref(null)
+const showInstallBanner = ref(false)
+const isIOS = ref(false)
+const isBannerDismissed = ref(false)
+
+const isStandalone = computed(() => {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+})
+
+onMounted(() => {
+  // Check if iOS
+  const userAgent = window.navigator.userAgent.toLowerCase()
+  isIOS.value = /iphone|ipad|ipod/.test(userAgent)
+
+  // Listen for custom install prompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault()
+    deferredPrompt.value = e
+    if (!isBannerDismissed.value) {
+      showInstallBanner.value = true
+    }
+  })
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt.value = null
+    showInstallBanner.value = false
+    showToast('Aplikasi Terpasang', 'wcompress berhasil terpasang di perangkat Anda!')
+  })
+})
+
+const triggerInstall = async () => {
+  if (!deferredPrompt.value) return
+  deferredPrompt.value.prompt()
+  const { outcome } = await deferredPrompt.value.userChoice
+  if (outcome === 'accepted') {
+    showToast('Instalasi Dimulai', 'Aplikasi sedang dipasang di perangkat Anda.', 'info')
+  }
+  deferredPrompt.value = null
+  showInstallBanner.value = false
+}
+
+const dismissInstallBanner = () => {
+  isBannerDismissed.value = true
+  showInstallBanner.value = false
+}
+
+const handleInstallClick = () => {
+  if (isIOS.value) {
+    isBannerDismissed.value = false
+    showToast('Petunjuk Pemasangan', 'Silakan lihat panduan pemasangan di bagian bawah layar.', 'info')
+  } else {
+    triggerInstall()
+  }
+}
 </script>
 
 <template>
@@ -107,7 +163,19 @@ provide('showToast', showToast)
         </div>
 
         <!-- Badges & Links -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
+          <!-- Install App Button (Visible on mobile/desktop when PWA is installable or on iOS) -->
+          <button
+            v-if="!isStandalone && (showInstallBanner || isIOS)"
+            @click="handleInstallClick"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-600/20 active:scale-95 transition-all cursor-pointer border border-brand-500/20"
+          >
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download
+          </button>
+
           <div
             class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-400"
           >
@@ -474,6 +542,61 @@ provide('showToast', showToast)
               Tutup
             </button>
           </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- PWA Install Banner -->
+    <transition name="modal-fade">
+      <div
+        v-if="(!isStandalone && !isBannerDismissed && (showInstallBanner || isIOS))"
+        class="fixed bottom-24 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 bg-slate-900/95 border border-slate-800/80 backdrop-blur-md p-4 rounded-xl shadow-2xl z-40 flex flex-col gap-3"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <img
+              :src="logoImage"
+              class="w-10 h-10 rounded-lg object-cover border border-slate-800"
+              alt="wcompress logo"
+            />
+            <div>
+              <p class="text-xs font-bold text-white">Pasang wcompress</p>
+              <p class="text-[10px] text-slate-400">Akses lebih cepat & offline-ready</p>
+            </div>
+          </div>
+          <button
+            @click="dismissInstallBanner"
+            class="text-slate-400 hover:text-slate-200 transition p-0.5 rounded-md hover:bg-slate-800/50 cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div v-if="isIOS" class="text-[10px] text-slate-300 leading-relaxed bg-slate-950/45 p-2.5 rounded-lg border border-slate-800/40 flex items-start gap-2">
+          <svg class="w-3.5 h-3.5 text-brand-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>
+            Ketuk tombol <b>Bagikan (Share)</b> lalu pilih <b>"Tambahkan ke Layar Utama"</b>.
+          </span>
+        </div>
+        
+        <div class="flex gap-2">
+          <button
+            @click="dismissInstallBanner"
+            class="flex-grow py-2 px-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/40 text-slate-400 rounded-lg font-bold text-xs transition-all text-center cursor-pointer active:scale-95"
+          >
+            {{ isIOS ? 'Tutup' : 'Nanti Saja' }}
+          </button>
+          <button
+            v-if="!isIOS"
+            @click="triggerInstall"
+            class="flex-grow py-2 px-3 rounded-lg font-bold text-xs bg-brand-600 hover:bg-brand-500 text-white shadow-md shadow-brand-600/10 cursor-pointer active:scale-95 transition-all text-center"
+          >
+            Pasang
+          </button>
         </div>
       </div>
     </transition>

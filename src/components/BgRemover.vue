@@ -936,12 +936,12 @@ onUnmounted(() => {
       </div>
 
       <!-- Control Buttons for Output -->
-      <div class="flex gap-4 w-full">
+      <div class="flex flex-col sm:flex-row gap-3 w-full">
         <button
           type="button"
           @click="resetBgRemover"
           :disabled="!aiOriginalUrl"
-          class="px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 flex-shrink-0"
+          class="w-full sm:w-auto px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 flex-shrink-0"
         >
           Reset
         </button>
@@ -951,7 +951,7 @@ onUnmounted(() => {
           :disabled="!aiOutputUrl"
           @click="downloadBgOutput"
           :class="[
-            'flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
+            'w-full sm:flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
             aiOutputUrl
               ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]'
               : 'bg-slate-800 text-slate-500 cursor-not-allowed',
