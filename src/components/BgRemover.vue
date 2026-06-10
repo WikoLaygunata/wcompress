@@ -28,6 +28,19 @@ const outputFileSize = ref(0)
 const aiMockActive = ref(false)
 const aiFileInput = ref(null)
 const pendingAiProcess = ref(false)
+const previewPanel = ref(null)
+
+const scrollToPreview = () => {
+  if (window.innerWidth < 768 && previewPanel.value) {
+    const headerHeight = 80
+    const elementPosition = previewPanel.value.getBoundingClientRect().top + window.scrollY
+    const offsetPosition = elementPosition - headerHeight
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    })
+  }
+}
 
 const lastResultData = ref(null)
 const lastResultWidth = ref(0)
@@ -59,6 +72,7 @@ const processAiFile = (file) => {
   aiOriginalUrl.value = URL.createObjectURL(file)
 
   showToast('Gambar Terunggah', 'Siap untuk diproses oleh AI Hapus BG.')
+  scrollToPreview()
 }
 
 // Initialize Web Worker
@@ -258,6 +272,7 @@ const loadBgMockImage = () => {
   aiOriginalUrl.value = mockImageUrl
 
   showToast('Gambar Contoh Dimuat', 'Siap untuk diproses oleh AI Hapus BG.')
+  scrollToPreview()
 }
 
 const resetBgRemover = () => {
@@ -720,6 +735,7 @@ onUnmounted(() => {
 
     <!-- Right Simulation Area (7 Cols) -->
     <div
+      ref="previewPanel"
       class="md:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-6 backdrop-blur-sm h-full transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
     >
       <!-- Display Grid -->

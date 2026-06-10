@@ -25,9 +25,22 @@ const mockImageActive = ref(false)
 const comparisonPosition = ref(50)
 const isDragging = ref(false)
 const comparisonContainer = ref(null)
+const previewPanel = ref(null)
 
 // Dropzone ref for compressor
 const fileInput = ref(null)
+
+const scrollToPreview = () => {
+  if (window.innerWidth < 1024 && previewPanel.value) {
+    const headerHeight = 80
+    const elementPosition = previewPanel.value.getBoundingClientRect().top + window.scrollY
+    const offsetPosition = elementPosition - headerHeight
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    })
+  }
+}
 
 const triggerFileInput = () => {
   fileInput.value.click()
@@ -88,6 +101,7 @@ const processFile = (file) => {
     originalDim.value = `${img.naturalWidth} x ${img.naturalHeight}px`
     runCompression()
     showToast('Gambar Dimuat', `Ukuran asli: ${formatSize(file.size)}`)
+    scrollToPreview()
   }
   img.onerror = () => {
     isCompressing.value = false
@@ -117,6 +131,7 @@ const loadMockImage = async () => {
     img.onload = () => {
       originalDim.value = `${img.naturalWidth} x ${img.naturalHeight}px`
       runCompression()
+      scrollToPreview()
     }
     img.onerror = () => {
       isCompressing.value = false
@@ -516,6 +531,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
 
     <!-- Right Side: Live Interactive Preview Panel (7 Columns) -->
     <div
+      ref="previewPanel"
       class="lg:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-6 backdrop-blur-sm h-full justify-between transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
     >
       <div>
