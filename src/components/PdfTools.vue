@@ -194,6 +194,9 @@ const compressPdf = async () => {
     const pdf = await loadingTask.promise
     const totalPages = pdf.numPages
 
+    // Faktor konversi dari Point (pt) ke Milimeter (mm)
+    const ptToMm = 25.4 / 72
+
     let doc = null
 
     for (let i = 1; i <= totalPages; i++) {
@@ -201,8 +204,10 @@ const compressPdf = async () => {
 
       // Dapatkan dimensi asli halaman (dalam pt)
       const originalViewport = page.getViewport({ scale: 1.0 })
-      const origWidth = originalViewport.width
-      const origHeight = originalViewport.height
+      
+      // Konversi langsung ke mm untuk menghindari bug unit kustom pada array format di jsPDF
+      const origWidthMm = originalViewport.width * ptToMm
+      const origHeightMm = originalViewport.height * ptToMm
 
       // Render halaman dengan skala resolusi tinggi untuk kompresi gambar berkualitas
       const renderViewport = page.getViewport({ scale: pdfRenderScale.value })
@@ -216,21 +221,21 @@ const compressPdf = async () => {
       const imgData = canvas.toDataURL('image/jpeg', compressQuality.value / 100)
 
       // Deteksi orientasi berdasarkan ukuran asli halaman
-      const isLandscape = origWidth > origHeight
+      const isLandscape = originalViewport.width > originalViewport.height
       const orientation = isLandscape ? 'landscape' : 'portrait'
 
       if (i === 1) {
         doc = new jsPDF({
           orientation,
-          unit: 'pt',
-          format: [origWidth, origHeight],
+          unit: 'mm',
+          format: [origWidthMm, origHeightMm],
           compress: true,
         })
       } else {
-        doc.addPage([origWidth, origHeight], orientation)
+        doc.addPage([origWidthMm, origHeightMm], orientation)
       }
 
-      doc.addImage(imgData, 'JPEG', 0, 0, origWidth, origHeight)
+      doc.addImage(imgData, 'JPEG', 0, 0, origWidthMm, origHeightMm)
 
       // Cleanup canvas memory
       canvas.width = 0
