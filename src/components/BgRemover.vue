@@ -37,7 +37,7 @@ const scrollToPreview = () => {
     const offsetPosition = elementPosition - headerHeight
     window.scrollTo({
       top: offsetPosition,
-      behavior: 'smooth'
+      behavior: 'smooth',
     })
   }
 }
@@ -265,7 +265,7 @@ const loadBgMockImage = () => {
   aiMockActive.value = false
   aiFile.value = { name: 'hahaha.jpg', size: 3086697 }
   aiOutputUrl.value = ''
-  
+
   if (aiOriginalUrl.value && aiOriginalUrl.value.startsWith('blob:')) {
     URL.revokeObjectURL(aiOriginalUrl.value)
   }
@@ -598,9 +598,13 @@ onUnmounted(() => {
                 ? 'border-brand-500 ring-2 ring-brand-500/30'
                 : 'border-slate-700 hover:border-slate-500',
             ]"
-            style="background-color: #ffffff;"
+            style="background-color: #ffffff"
           >
-            <span v-if="selectedBgColor === '#ffffff'" class="text-[9px] font-bold text-slate-900 font-mono">✓</span>
+            <span
+              v-if="selectedBgColor === '#ffffff'"
+              class="text-[9px] font-bold text-slate-900 font-mono"
+              >✓</span
+            >
           </button>
           <button
             type="button"
@@ -612,9 +616,13 @@ onUnmounted(() => {
                 ? 'border-brand-500 ring-2 ring-brand-500/30'
                 : 'border-slate-700 hover:border-slate-500',
             ]"
-            style="background-color: #ef4444;"
+            style="background-color: #ef4444"
           >
-            <span v-if="selectedBgColor === '#ef4444'" class="text-[9px] font-bold text-white font-mono">✓</span>
+            <span
+              v-if="selectedBgColor === '#ef4444'"
+              class="text-[9px] font-bold text-white font-mono"
+              >✓</span
+            >
           </button>
           <button
             type="button"
@@ -626,16 +634,22 @@ onUnmounted(() => {
                 ? 'border-brand-500 ring-2 ring-brand-500/30'
                 : 'border-slate-700 hover:border-slate-500',
             ]"
-            style="background-color: #2563eb;"
+            style="background-color: #2563eb"
           >
-            <span v-if="selectedBgColor === '#2563eb'" class="text-[9px] font-bold text-white font-mono">✓</span>
+            <span
+              v-if="selectedBgColor === '#2563eb'"
+              class="text-[9px] font-bold text-white font-mono"
+              >✓</span
+            >
           </button>
-          
+
           <!-- Custom Color Picker -->
           <div class="h-6 w-px bg-slate-800"></div>
-          
+
           <div class="flex items-center gap-2 flex-grow">
-            <div class="relative w-6 h-6 rounded-full border border-slate-700 overflow-hidden cursor-pointer hover:scale-110 transition-all flex-shrink-0">
+            <div
+              class="relative w-6 h-6 rounded-full border border-slate-700 overflow-hidden cursor-pointer hover:scale-110 transition-all flex-shrink-0"
+            >
               <input
                 type="color"
                 v-model="selectedBgColor"
@@ -723,7 +737,10 @@ onUnmounted(() => {
         </svg>
         <span
           >Output dikonversi ke
-          <b class="text-slate-300">{{ outputFormat === 'webp' ? 'WebP' : 'PNG' }} {{ bgColorMode === 'transparent' ? 'Transparan' : 'Warna Solid' }}</b>.
+          <b class="text-slate-300"
+            >{{ outputFormat === 'webp' ? 'WebP' : 'PNG' }}
+            {{ bgColorMode === 'transparent' ? 'Transparan' : 'Warna Solid' }}</b
+          >.
           {{
             outputFormat === 'webp'
               ? 'WebP menghasilkan file 5-10x lebih kecil dari PNG.'
@@ -767,8 +784,8 @@ onUnmounted(() => {
           <div class="space-y-1">
             <p class="text-sm font-semibold text-slate-300">Hapus Background AI</p>
             <p class="text-xs text-slate-500 max-w-xs">
-              Gunakan gambar contoh di bawah jika Anda tidak ingin mengunggah file sendiri,
-              atau unggah gambar Anda di panel kiri.
+              Gunakan gambar contoh di bawah jika Anda tidak ingin mengunggah file sendiri, atau
+              unggah gambar Anda di panel kiri.
             </p>
           </div>
           <button
@@ -849,8 +866,8 @@ onUnmounted(() => {
           <div
             class="absolute inset-0 overflow-hidden"
             :class="{ 'transparency-grid': bgColorMode === 'transparent' }"
-            :style="{ 
-              clipPath: `inset(0 0 0 ${comparisonPosition}%)`
+            :style="{
+              clipPath: `inset(0 0 0 ${comparisonPosition}%)`,
             }"
           >
             <div class="absolute inset-0 p-4 flex items-center justify-center">
@@ -909,27 +926,47 @@ onUnmounted(() => {
       >
         <div class="flex items-center gap-4">
           <div>
-            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Ukuran Asli</span>
-            <p class="font-bold text-slate-300 font-mono mt-0.5">{{ formatSize(aiFile?.size || 0) }}</p>
+            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+              >Ukuran Asli</span
+            >
+            <p class="font-bold text-slate-300 font-mono mt-0.5">
+              {{ formatSize(aiFile?.size || 0) }}
+            </p>
           </div>
           <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M14 5l7 7m0 0l-7 7m7-7H3"
+            />
           </svg>
           <div>
-            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Hasil Cutout</span>
-            <p class="font-bold font-mono mt-0.5" :class="aiOutputUrl ? 'text-brand-400' : 'text-slate-500 animate-pulse'">
+            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+              >Hasil Cutout</span
+            >
+            <p
+              class="font-bold font-mono mt-0.5"
+              :class="aiOutputUrl ? 'text-brand-400' : 'text-slate-500 animate-pulse'"
+            >
               {{ aiOutputUrl ? formatSize(outputFileSize) : 'Menunggu AI...' }}
             </p>
           </div>
         </div>
-        
+
         <!-- Efficiency Badge -->
         <div v-if="aiOutputUrl && outputFileSize && aiFile?.size" class="text-right">
-          <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Perbandingan</span>
-          <p class="font-black font-mono text-xs mt-0.5" :class="outputFileSize <= aiFile.size ? 'text-emerald-400' : 'text-amber-400'">
-            {{ outputFileSize <= aiFile.size 
-              ? `-${Math.round((1 - (outputFileSize / aiFile.size)) * 100)}%` 
-              : `+${Math.round(((outputFileSize / aiFile.size) - 1) * 100)}%` 
+          <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+            >Perbandingan</span
+          >
+          <p
+            class="font-black font-mono text-xs mt-0.5"
+            :class="outputFileSize <= aiFile.size ? 'text-emerald-400' : 'text-amber-400'"
+          >
+            {{
+              outputFileSize <= aiFile.size
+                ? `-${Math.round((1 - outputFileSize / aiFile.size) * 100)}%`
+                : `+${Math.round((outputFileSize / aiFile.size - 1) * 100)}%`
             }}
           </p>
         </div>

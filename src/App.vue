@@ -44,24 +44,28 @@ const showToast = (title, desc, type = 'success') => {
 const faqs = ref([
   {
     question: 'Bagaimana wcompress menjamin keamanan file saya?',
-    answer: 'Semua proses pengerjaan (kompresi gambar, penghapusan background AI, pengolahan PDF) berjalan 100% lokal di browsermu menggunakan WebAssembly & JavaScript. Tidak ada file yang dikirim ke server. Kamu bahkan bisa mematikan koneksi internet setelah membuka web ini!',
-    isOpen: false
+    answer:
+      'Semua proses pengerjaan (kompresi gambar, penghapusan background AI, pengolahan PDF) berjalan 100% lokal di browsermu menggunakan WebAssembly & JavaScript. Tidak ada file yang dikirim ke server. Kamu bahkan bisa mematikan koneksi internet setelah membuka web ini!',
+    isOpen: false,
   },
   {
     question: 'Mengapa hasil kompresi PDF mengubah teks menjadi gambar?',
-    answer: 'Kami menggunakan metode Client-Side Rasterization (mengubah halaman PDF menjadi gambar lalu menyusunnya kembali). Hal ini membuat ukuran file berkurang drastis dan aman dari masalah font, namun teks di PDF hasil kompresi tidak bisa disalin (copy-paste). Sangat cocok untuk scan dokumen, ijazah, atau portofolio.',
-    isOpen: false
+    answer:
+      'Kami menggunakan metode Client-Side Rasterization (mengubah halaman PDF menjadi gambar lalu menyusunnya kembali). Hal ini membuat ukuran file berkurang drastis dan aman dari masalah font, namun teks di PDF hasil kompresi tidak bisa disalin (copy-paste). Sangat cocok untuk scan dokumen, ijazah, atau portofolio.',
+    isOpen: false,
   },
   {
     question: 'Apakah fitur AI Hapus BG benar-benar berjalan secara lokal?',
-    answer: 'Ya! Kami menggunakan library Transformers.js. Pada pemakaian pertama, browsermu akan mengunduh model AI Xenova MODNet (~25MB). Setelah itu, model akan disimpan di cache lokal browsermu sehingga pemakaian selanjutnya berjalan instan dan 100% offline tanpa menggunakan internet.',
-    isOpen: false
+    answer:
+      'Ya! Kami menggunakan library Transformers.js. Pada pemakaian pertama, browsermu akan mengunduh model AI Xenova MODNet (~25MB). Setelah itu, model akan disimpan di cache lokal browsermu sehingga pemakaian selanjutnya berjalan instan dan 100% offline tanpa menggunakan internet.',
+    isOpen: false,
   },
   {
     question: 'Format gambar apa saja yang didukung oleh wcompress?',
-    answer: 'Kami mendukung format gambar populer seperti JPEG, PNG, WEBP, dan format modern lainnya. Kamu bisa mengompresinya, menghapus backgroundnya secara presisi, atau menggabungkannya menjadi satu file PDF secara instan.',
-    isOpen: false
-  }
+    answer:
+      'Kami mendukung format gambar populer seperti JPEG, PNG, WEBP, dan format modern lainnya. Kamu bisa mengompresinya, menghapus backgroundnya secara presisi, atau menggabungkannya menjadi satu file PDF secara instan.',
+    isOpen: false,
+  },
 ])
 
 const toggleFaq = (index) => {
@@ -78,7 +82,9 @@ const isBannerDismissed = ref(false)
 
 const isStandalone = computed(() => {
   if (typeof window === 'undefined') return false
-  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+  return (
+    window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+  )
 })
 
 onMounted(() => {
@@ -121,7 +127,11 @@ const dismissInstallBanner = () => {
 const handleInstallClick = () => {
   if (isIOS.value) {
     isBannerDismissed.value = false
-    showToast('Petunjuk Pemasangan', 'Silakan lihat panduan pemasangan di bagian bawah layar.', 'info')
+    showToast(
+      'Petunjuk Pemasangan',
+      'Silakan lihat panduan pemasangan di bagian bawah layar.',
+      'info',
+    )
   } else {
     triggerInstall()
   }
@@ -170,8 +180,18 @@ const handleInstallClick = () => {
             @click="handleInstallClick"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-600/20 active:scale-95 transition-all cursor-pointer border border-brand-500/20"
           >
-            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <svg
+              class="w-3.5 h-3.5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
             </svg>
             Download
           </button>
@@ -273,7 +293,6 @@ const handleInstallClick = () => {
           <component :is="tabComponents[currentTab]" :key="currentTab" />
         </keep-alive>
       </transition>
-
     </main>
 
     <!-- Custom Toast Notification -->
@@ -297,20 +316,58 @@ const handleInstallClick = () => {
         ]"
       >
         <!-- Success Icon -->
-        <svg v-if="toastType === 'success'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+        <svg
+          v-if="toastType === 'success'"
+          class="w-3.5 h-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="3"
+            d="M5 13l4 4L19 7"
+          />
         </svg>
         <!-- Warning Icon -->
-        <svg v-else-if="toastType === 'warning'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        <svg
+          v-else-if="toastType === 'warning'"
+          class="w-3.5 h-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.5"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+          />
         </svg>
         <!-- Error Icon -->
-        <svg v-else-if="toastType === 'error'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+        <svg
+          v-else-if="toastType === 'error'"
+          class="w-3.5 h-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="3"
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
         <!-- Info Icon -->
         <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.5"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       </div>
       <div>
@@ -341,7 +398,12 @@ const handleInstallClick = () => {
             @click="showFaqModal = true"
             class="flex items-center gap-1.5 hover:text-brand-400 text-slate-400 transition-colors font-semibold cursor-pointer"
           >
-            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              class="w-3.5 h-3.5 text-brand-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -371,10 +433,7 @@ const handleInstallClick = () => {
 
     <!-- FAQ Modal -->
     <transition name="modal-fade">
-      <div
-        v-if="showFaqModal"
-        class="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      >
+      <div v-if="showFaqModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <!-- Backdrop -->
         <div
           @click="showFaqModal = false"
@@ -388,7 +447,12 @@ const handleInstallClick = () => {
           <!-- Header -->
           <div class="p-4 border-b border-slate-800/60 flex items-center justify-between">
             <h3 class="font-bold text-sm text-white flex items-center gap-2">
-              <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                class="w-4 h-4 text-brand-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -428,19 +492,26 @@ const handleInstallClick = () => {
                 <svg
                   :class="[
                     'w-3.5 h-3.5 text-slate-500 transition-transform duration-300 flex-shrink-0 ml-4',
-                    faq.isOpen ? 'rotate-180 text-brand-400' : ''
+                    faq.isOpen ? 'rotate-180 text-brand-400' : '',
                   ]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               <div
                 :class="[
                   'transition-all duration-300 ease-in-out overflow-hidden',
-                  faq.isOpen ? 'max-h-40 border-t border-slate-850 opacity-100' : 'max-h-0 opacity-0'
+                  faq.isOpen
+                    ? 'max-h-40 border-t border-slate-850 opacity-100'
+                    : 'max-h-0 opacity-0',
                 ]"
               >
                 <p class="p-3.5 text-xs text-slate-400 leading-relaxed bg-slate-950/20 font-medium">
@@ -549,7 +620,7 @@ const handleInstallClick = () => {
     <!-- PWA Install Banner -->
     <transition name="modal-fade">
       <div
-        v-if="(!isStandalone && !isBannerDismissed && (showInstallBanner || isIOS))"
+        v-if="!isStandalone && !isBannerDismissed && (showInstallBanner || isIOS)"
         class="fixed bottom-24 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 bg-slate-900/95 border border-slate-800/80 backdrop-blur-md p-4 rounded-xl shadow-2xl z-40 flex flex-col gap-3"
       >
         <div class="flex items-start justify-between gap-3">
@@ -569,20 +640,38 @@ const handleInstallClick = () => {
             class="text-slate-400 hover:text-slate-200 transition p-0.5 rounded-md hover:bg-slate-800/50 cursor-pointer"
           >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
-        <div v-if="isIOS" class="text-[10px] text-slate-300 leading-relaxed bg-slate-950/45 p-2.5 rounded-lg border border-slate-800/40 flex items-start gap-2">
-          <svg class="w-3.5 h-3.5 text-brand-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        <div
+          v-if="isIOS"
+          class="text-[10px] text-slate-300 leading-relaxed bg-slate-950/45 p-2.5 rounded-lg border border-slate-800/40 flex items-start gap-2"
+        >
+          <svg
+            class="w-3.5 h-3.5 text-brand-400 flex-shrink-0 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2.5"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
           </svg>
           <span>
             Ketuk tombol <b>Bagikan (Share)</b> lalu pilih <b>"Tambahkan ke Layar Utama"</b>.
           </span>
         </div>
-        
+
         <div class="flex gap-2">
           <button
             @click="dismissInstallBanner"

@@ -73,7 +73,7 @@ watch(
       convertedPdfSize.value = 0
     }
   },
-  { deep: true }
+  { deep: true },
 )
 
 const compressPreviewUrls = ref([])
@@ -87,7 +87,7 @@ const generateCompressPreview = async (blob) => {
     const pdf = await loadingTask.promise
     const totalPages = pdf.numPages
     const urls = []
-    
+
     // Preview up to 5 pages
     const previewCount = Math.min(totalPages, 5)
     for (let i = 1; i <= previewCount; i++) {
@@ -117,7 +117,7 @@ const generateConvertPreview = async (blob) => {
     const pdf = await loadingTask.promise
     const totalPages = pdf.numPages
     const urls = []
-    
+
     // Preview up to 5 pages
     const previewCount = Math.min(totalPages, 5)
     for (let i = 1; i <= previewCount; i++) {
@@ -169,7 +169,7 @@ const handlePdfUpload = async (e) => {
       showToast(
         'Dokumen Besar Terdeteksi',
         `File ini memiliki ${pdf.numPages} halaman. Proses mungkin lambat dan memakan banyak RAM. Risiko ditanggung pengguna.`,
-        'warning'
+        'warning',
       )
     }
 
@@ -198,35 +198,39 @@ const compressPdf = async () => {
 
     for (let i = 1; i <= totalPages; i++) {
       const page = await pdf.getPage(i)
-      const viewport = page.getViewport({ scale: pdfRenderScale.value })
 
+      // Dapatkan dimensi asli halaman (dalam pt)
+      const originalViewport = page.getViewport({ scale: 1.0 })
+      const origWidth = originalViewport.width
+      const origHeight = originalViewport.height
+
+      // Render halaman dengan skala resolusi tinggi untuk kompresi gambar berkualitas
+      const renderViewport = page.getViewport({ scale: pdfRenderScale.value })
       const canvas = document.createElement('canvas')
-      canvas.width = viewport.width
-      canvas.height = viewport.height
+      canvas.width = renderViewport.width
+      canvas.height = renderViewport.height
       const ctx = canvas.getContext('2d')
 
-      await page.render({ canvasContext: ctx, viewport }).promise
+      await page.render({ canvasContext: ctx, viewport: renderViewport }).promise
 
       const imgData = canvas.toDataURL('image/jpeg', compressQuality.value / 100)
 
-      // Auto-detect orientation per page
-      const isLandscape = viewport.width > viewport.height
+      // Deteksi orientasi berdasarkan ukuran asli halaman
+      const isLandscape = origWidth > origHeight
       const orientation = isLandscape ? 'landscape' : 'portrait'
-      const pageWidth = viewport.width
-      const pageHeight = viewport.height
 
       if (i === 1) {
         doc = new jsPDF({
           orientation,
-          unit: 'px',
-          format: [pageWidth, pageHeight],
+          unit: 'pt',
+          format: [origWidth, origHeight],
           compress: true,
         })
       } else {
-        doc.addPage([pageWidth, pageHeight], orientation)
+        doc.addPage([origWidth, origHeight], orientation)
       }
 
-      doc.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight)
+      doc.addImage(imgData, 'JPEG', 0, 0, origWidth, origHeight)
 
       // Cleanup canvas memory
       canvas.width = 0
@@ -247,7 +251,10 @@ const compressPdf = async () => {
 
     await generateCompressPreview(blob)
 
-    showToast('Kompresi Selesai!', `Ukuran berhasil diperkecil dari ${formatSize(originalPdfSize.value)} ke ${formatSize(blob.size)}.`)
+    showToast(
+      'Kompresi Selesai!',
+      `Ukuran berhasil diperkecil dari ${formatSize(originalPdfSize.value)} ke ${formatSize(blob.size)}.`,
+    )
   } catch (err) {
     console.error('PDF compression error:', err)
     showToast('Gagal Kompresi', 'Terjadi kesalahan saat mengompresi PDF.', 'error')
@@ -452,7 +459,9 @@ onUnmounted(() => {
 <template>
   <div id="panel-pdftools" class="max-w-5xl mx-auto w-full space-y-6">
     <!-- Sub-Tab Navigation -->
-    <div class="flex p-1 bg-slate-900/60 border border-slate-800/80 rounded-xl max-w-sm mx-auto w-full">
+    <div
+      class="flex p-1 bg-slate-900/60 border border-slate-800/80 rounded-xl max-w-sm mx-auto w-full"
+    >
       <button
         type="button"
         @click="activeSubTab = 'compress'"
@@ -464,7 +473,12 @@ onUnmounted(() => {
         ]"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 14l-7 7m0 0l-7-7m7 7V3"
+          />
         </svg>
         Kompres PDF
       </button>
@@ -479,7 +493,12 @@ onUnmounted(() => {
         ]"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
         </svg>
         Gambar ke PDF
       </button>
@@ -488,7 +507,10 @@ onUnmounted(() => {
     <!-- ═══════════════════════════════ -->
     <!-- SUB-TAB 1: KOMPRES PDF         -->
     <!-- ═══════════════════════════════ -->
-    <div v-if="activeSubTab === 'compress'" class="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch">
+    <div
+      v-if="activeSubTab === 'compress'"
+      class="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch"
+    >
       <!-- Left Panel (5 cols) -->
       <div
         class="md:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 space-y-6 backdrop-blur-sm transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
@@ -509,7 +531,9 @@ onUnmounted(() => {
 
         <!-- PDF Upload Dropzone -->
         <div class="space-y-2">
-          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Unggah PDF</label>
+          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider"
+            >Unggah PDF</label
+          >
           <div
             @click="triggerPdfInput"
             @dragover.prevent
@@ -527,8 +551,18 @@ onUnmounted(() => {
               <div
                 class="mx-auto w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center group-hover:scale-110 group-hover:border-brand-500 transition-all"
               >
-                <svg class="w-5 h-5 text-slate-400 group-hover:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                <svg
+                  class="w-5 h-5 text-slate-400 group-hover:text-brand-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <div class="space-y-0.5">
@@ -543,21 +577,36 @@ onUnmounted(() => {
         </div>
 
         <!-- File Info Badge -->
-        <div v-if="pdfFile" class="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl space-y-2">
+        <div
+          v-if="pdfFile"
+          class="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl space-y-2"
+        >
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-300 truncate max-w-[180px]" :title="pdfName">{{ pdfName }}</span>
-            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase">
+            <span
+              class="text-xs font-semibold text-slate-300 truncate max-w-[180px]"
+              :title="pdfName"
+              >{{ pdfName }}</span
+            >
+            <span
+              class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase"
+            >
               {{ pdfPageCount }} Halaman
             </span>
           </div>
-          <p class="text-[10px] text-slate-500 font-mono">Ukuran asli: {{ formatSize(originalPdfSize) }}</p>
+          <p class="text-[10px] text-slate-500 font-mono">
+            Ukuran asli: {{ formatSize(originalPdfSize) }}
+          </p>
         </div>
 
         <!-- Quality Slider -->
         <div class="space-y-3">
           <div class="flex justify-between">
-            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Kualitas Gambar</label>
-            <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded">{{ compressQuality }}%</span>
+            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider"
+              >Kualitas Gambar</label
+            >
+            <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded"
+              >{{ compressQuality }}%</span
+            >
           </div>
           <input
             type="range"
@@ -577,8 +626,12 @@ onUnmounted(() => {
         <!-- Render Scale -->
         <div class="space-y-3">
           <div class="flex justify-between">
-            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Resolusi Render</label>
-            <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded">{{ pdfRenderScale }}x</span>
+            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider"
+              >Resolusi Render</label
+            >
+            <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded"
+              >{{ pdfRenderScale }}x</span
+            >
           </div>
           <input
             type="range"
@@ -609,11 +662,27 @@ onUnmounted(() => {
           ]"
         >
           <svg v-if="isCompressing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
           </svg>
           <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            />
           </svg>
           {{ isCompressing ? 'Mengompresi...' : 'Proses Kompresi PDF' }}
         </button>
@@ -627,14 +696,29 @@ onUnmounted(() => {
         <div
           :class="[
             'relative flex-grow min-h-[300px] rounded-xl border border-slate-800 overflow-hidden bg-slate-950',
-            compressedPdfUrl ? 'p-3' : 'flex items-center justify-center'
+            compressedPdfUrl ? 'p-3' : 'flex items-center justify-center',
           ]"
         >
           <!-- No PDF -->
-          <div v-if="!pdfFile" class="flex flex-col items-center justify-center text-center p-6 space-y-4">
-            <div class="w-16 h-16 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center shadow-inner">
-              <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <div
+            v-if="!pdfFile"
+            class="flex flex-col items-center justify-center text-center p-6 space-y-4"
+          >
+            <div
+              class="w-16 h-16 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center shadow-inner"
+            >
+              <svg
+                class="w-8 h-8 text-slate-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
             </div>
             <div class="space-y-1">
@@ -646,34 +730,74 @@ onUnmounted(() => {
           </div>
 
           <!-- Compressing Spinner -->
-          <div v-else-if="isCompressing" class="flex flex-col items-center justify-center space-y-4 p-6">
-            <div class="w-12 h-12 rounded-full border-4 border-slate-800 border-t-brand-500 animate-spin"></div>
+          <div
+            v-else-if="isCompressing"
+            class="flex flex-col items-center justify-center space-y-4 p-6"
+          >
+            <div
+              class="w-12 h-12 rounded-full border-4 border-slate-800 border-t-brand-500 animate-spin"
+            ></div>
             <div class="text-center space-y-1">
-              <p class="text-xs font-semibold text-slate-300">Mengompresi {{ pdfPageCount }} halaman...</p>
-              <p class="text-[10px] text-slate-500">Setiap halaman dirender ke gambar lalu disusun ulang.</p>
+              <p class="text-xs font-semibold text-slate-300">
+                Mengompresi {{ pdfPageCount }} halaman...
+              </p>
+              <p class="text-[10px] text-slate-500">
+                Setiap halaman dirender ke gambar lalu disusun ulang.
+              </p>
             </div>
           </div>
 
           <!-- Waiting for action -->
-          <div v-else-if="pdfFile && !compressedPdfUrl" class="flex flex-col items-center justify-center text-center p-6 space-y-4">
-            <div class="w-16 h-16 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
-              <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <div
+            v-else-if="pdfFile && !compressedPdfUrl"
+            class="flex flex-col items-center justify-center text-center p-6 space-y-4"
+          >
+            <div
+              class="w-16 h-16 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center"
+            >
+              <svg
+                class="w-8 h-8 text-brand-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
             </div>
             <div class="space-y-1">
               <p class="text-sm font-semibold text-slate-300">{{ pdfName }}</p>
-              <p class="text-xs text-slate-500">{{ pdfPageCount }} halaman • {{ formatSize(originalPdfSize) }}</p>
-              <p class="text-[10px] text-slate-400 mt-2">Atur kualitas di panel kiri, lalu tekan "Proses Kompresi PDF".</p>
+              <p class="text-xs text-slate-500">
+                {{ pdfPageCount }} halaman • {{ formatSize(originalPdfSize) }}
+              </p>
+              <p class="text-[10px] text-slate-400 mt-2">
+                Atur kualitas di panel kiri, lalu tekan "Proses Kompresi PDF".
+              </p>
             </div>
           </div>
 
           <!-- Compression Done -->
           <div v-else-if="compressedPdfUrl" class="w-full flex-grow flex flex-col gap-3">
-            <div class="flex-grow overflow-y-auto max-h-[380px] p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-3">
-              <div v-for="(url, idx) in compressPreviewUrls" :key="idx" class="relative bg-slate-900/40 border border-slate-800/60 shadow rounded-lg overflow-hidden p-0.5">
-                <img :src="url" class="w-full h-auto object-contain rounded" :alt="'Halaman ' + (idx + 1)" />
-                <span class="absolute bottom-2 right-2 px-1.5 py-0.5 bg-slate-950/85 text-[9px] text-slate-400 font-bold rounded">
+            <div
+              class="flex-grow overflow-y-auto max-h-[380px] p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-3"
+            >
+              <div
+                v-for="(url, idx) in compressPreviewUrls"
+                :key="idx"
+                class="relative bg-slate-900/40 border border-slate-800/60 shadow rounded-lg overflow-hidden p-0.5"
+              >
+                <img
+                  :src="url"
+                  class="w-full h-auto object-contain rounded"
+                  :alt="'Halaman ' + (idx + 1)"
+                />
+                <span
+                  class="absolute bottom-2 right-2 px-1.5 py-0.5 bg-slate-950/85 text-[9px] text-slate-400 font-bold rounded"
+                >
                   Halaman {{ idx + 1 }}
                 </span>
               </div>
@@ -685,25 +809,52 @@ onUnmounted(() => {
         </div>
 
         <!-- Size Comparison -->
-        <div v-if="pdfFile" class="flex items-center justify-between p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs">
+        <div
+          v-if="pdfFile"
+          class="flex items-center justify-between p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs"
+        >
           <div class="flex items-center gap-4">
             <div>
-              <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Ukuran Asli</span>
-              <p class="font-bold text-slate-300 font-mono mt-0.5">{{ formatSize(originalPdfSize) }}</p>
+              <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+                >Ukuran Asli</span
+              >
+              <p class="font-bold text-slate-300 font-mono mt-0.5">
+                {{ formatSize(originalPdfSize) }}
+              </p>
             </div>
-            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            <svg
+              class="w-4 h-4 text-slate-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M14 5l7 7m0 0l-7 7m7-7H3"
+              />
             </svg>
             <div>
-              <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Hasil Kompresi</span>
-              <p class="font-bold font-mono mt-0.5" :class="compressedPdfUrl ? 'text-brand-400' : 'text-slate-500 animate-pulse'">
+              <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+                >Hasil Kompresi</span
+              >
+              <p
+                class="font-bold font-mono mt-0.5"
+                :class="compressedPdfUrl ? 'text-brand-400' : 'text-slate-500 animate-pulse'"
+              >
                 {{ compressedPdfUrl ? formatSize(compressedPdfSize) : 'Menunggu...' }}
               </p>
             </div>
           </div>
           <div v-if="compressedPdfUrl && compressedPdfSize" class="text-right">
-            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Penghematan</span>
-            <p class="font-black font-mono text-xs mt-0.5" :class="spaceSavings > 0 ? 'text-emerald-400' : 'text-amber-400'">
+            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+              >Penghematan</span
+            >
+            <p
+              class="font-black font-mono text-xs mt-0.5"
+              :class="spaceSavings > 0 ? 'text-emerald-400' : 'text-amber-400'"
+            >
               {{ spaceSavings > 0 ? `-${spaceSavings}%` : '0%' }}
             </p>
           </div>
@@ -719,7 +870,7 @@ onUnmounted(() => {
           >
             Reset
           </button>
-          
+
           <button
             type="button"
             :disabled="!compressedPdfUrl"
@@ -732,23 +883,45 @@ onUnmounted(() => {
             ]"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
             </svg>
             Unduh PDF Hasil Kompresi
-            <span v-if="compressedPdfSize" class="text-[10px] opacity-70">({{ formatSize(compressedPdfSize) }})</span>
+            <span v-if="compressedPdfSize" class="text-[10px] opacity-70"
+              >({{ formatSize(compressedPdfSize) }})</span
+            >
           </button>
         </div>
 
         <!-- Disclaimer -->
         <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2">
           <div class="flex items-start gap-2">
-            <svg class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            <svg
+              class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
             </svg>
             <div>
               <p class="text-xs font-bold text-amber-200">Disklaimer Cara Kerja & Keterbatasan</p>
               <p class="text-[11px] text-amber-200/70 leading-relaxed mt-1">
-                Aplikasi ini menggunakan metode <b class="text-amber-200">Client-Side Rasterization</b> (PDF → Gambar → PDF) yang diproses 100% lokal di browsermu. Teks di dalam PDF hasil kompresi akan diubah menjadi format gambar, sehingga <b class="text-amber-200">tidak bisa disalin (copy-paste)</b>. Sangat cocok untuk berkas lamaran kerja, scan ijazah, KTP, atau dokumen administrasi singkat lainnya.
+                Aplikasi ini menggunakan metode
+                <b class="text-amber-200">Client-Side Rasterization</b> (PDF → Gambar → PDF) yang
+                diproses 100% lokal di browsermu. Teks di dalam PDF hasil kompresi akan diubah
+                menjadi format gambar, sehingga
+                <b class="text-amber-200">tidak bisa disalin (copy-paste)</b>. Sangat cocok untuk
+                berkas lamaran kerja, scan ijazah, KTP, atau dokumen administrasi singkat lainnya.
               </p>
             </div>
           </div>
@@ -759,7 +932,10 @@ onUnmounted(() => {
     <!-- ═══════════════════════════════ -->
     <!-- SUB-TAB 2: GAMBAR KE PDF       -->
     <!-- ═══════════════════════════════ -->
-    <div v-if="activeSubTab === 'img2pdf'" class="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch">
+    <div
+      v-if="activeSubTab === 'img2pdf'"
+      class="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch"
+    >
       <!-- Left Panel (5 cols) -->
       <div
         class="md:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 space-y-6 backdrop-blur-sm transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
@@ -780,7 +956,9 @@ onUnmounted(() => {
 
         <!-- Image Upload Dropzone -->
         <div class="space-y-2">
-          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Unggah Gambar</label>
+          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider"
+            >Unggah Gambar</label
+          >
           <div
             @click="triggerImgInput"
             @dragover.prevent
@@ -799,8 +977,18 @@ onUnmounted(() => {
               <div
                 class="mx-auto w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center group-hover:scale-110 group-hover:border-brand-500 transition-all"
               >
-                <svg class="w-5 h-5 text-slate-400 group-hover:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  class="w-5 h-5 text-slate-400 group-hover:text-brand-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <div class="space-y-0.5">
@@ -808,18 +996,23 @@ onUnmounted(() => {
                   Drag & drop gambar atau
                   <span class="text-brand-400 group-hover:underline">telusuri</span>
                 </p>
-                <p class="text-[10px] text-slate-500">Pilih banyak gambar sekaligus (JPEG, PNG, WEBP)</p>
+                <p class="text-[10px] text-slate-500">
+                  Pilih banyak gambar sekaligus (JPEG, PNG, WEBP)
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-
         <!-- Quality Slider -->
         <div class="space-y-3">
           <div class="flex justify-between">
-            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Kualitas Kompresi</label>
-            <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded">{{ imgToPdfQuality }}%</span>
+            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider"
+              >Kualitas Kompresi</label
+            >
+            <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded"
+              >{{ imgToPdfQuality }}%</span
+            >
           </div>
           <input
             type="range"
@@ -837,9 +1030,15 @@ onUnmounted(() => {
         </div>
 
         <!-- Image Count Badge -->
-        <div v-if="images.length > 0" class="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center justify-between">
+        <div
+          v-if="images.length > 0"
+          class="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center justify-between"
+        >
           <span class="text-xs text-slate-400">Total gambar yang akan digabung:</span>
-          <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded font-mono">{{ images.length }}</span>
+          <span
+            class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded font-mono"
+            >{{ images.length }}</span
+          >
         </div>
 
         <!-- Convert Button -->
@@ -853,7 +1052,7 @@ onUnmounted(() => {
           >
             Hapus Semua
           </button>
-          
+
           <button
             type="button"
             :disabled="images.length === 0 || isConverting"
@@ -866,11 +1065,27 @@ onUnmounted(() => {
             ]"
           >
             <svg v-if="isConverting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
             {{ isConverting ? 'Mengonversi...' : 'Konversi ke PDF' }}
           </button>
@@ -886,33 +1101,68 @@ onUnmounted(() => {
             <span class="w-1.5 h-4 bg-brand-500 rounded"></span>
             {{ convertedPdfUrl ? 'Hasil Berkas PDF' : 'Preview & Urutan Gambar' }}
           </h3>
-          <span v-if="images.length > 0 && !convertedPdfUrl" class="text-[10px] px-2 py-0.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded font-medium">
+          <span
+            v-if="images.length > 0 && !convertedPdfUrl"
+            class="text-[10px] px-2 py-0.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded font-medium"
+          >
             {{ images.length }} gambar
           </span>
-          <span v-else-if="convertedPdfUrl" class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
+          <span
+            v-else-if="convertedPdfUrl"
+            class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium"
+          >
             Selesai Dikonversi
           </span>
         </div>
 
         <!-- Empty State (No Images) -->
-        <div v-if="images.length === 0" class="flex-grow min-h-[300px] rounded-xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center text-center p-6 space-y-4">
-          <div class="w-16 h-16 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center shadow-inner">
-            <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <div
+          v-if="images.length === 0"
+          class="flex-grow min-h-[300px] rounded-xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center text-center p-6 space-y-4"
+        >
+          <div
+            class="w-16 h-16 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center shadow-inner"
+          >
+            <svg
+              class="w-8 h-8 text-slate-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
           </div>
           <div class="space-y-1">
             <p class="text-sm font-semibold text-slate-300">Belum Ada Gambar</p>
-            <p class="text-xs text-slate-500 max-w-xs">Unggah gambar di panel kiri untuk melihat preview dan mengatur urutan halaman PDF.</p>
+            <p class="text-xs text-slate-500 max-w-xs">
+              Unggah gambar di panel kiri untuk melihat preview dan mengatur urutan halaman PDF.
+            </p>
           </div>
         </div>
 
         <!-- PDF Success State (When conversion is done) -->
         <div v-else-if="convertedPdfUrl" class="w-full flex-grow flex flex-col gap-3">
-          <div class="flex-grow overflow-y-auto max-h-[380px] p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-3">
-            <div v-for="(url, idx) in convertPreviewUrls" :key="idx" class="relative bg-slate-900/40 border border-slate-800/60 shadow rounded-lg overflow-hidden p-0.5">
-              <img :src="url" class="w-full h-auto object-contain rounded" :alt="'Halaman ' + (idx + 1)" />
-              <span class="absolute bottom-2 right-2 px-1.5 py-0.5 bg-slate-950/85 text-[9px] text-slate-400 font-bold rounded">
+          <div
+            class="flex-grow overflow-y-auto max-h-[380px] p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-3"
+          >
+            <div
+              v-for="(url, idx) in convertPreviewUrls"
+              :key="idx"
+              class="relative bg-slate-900/40 border border-slate-800/60 shadow rounded-lg overflow-hidden p-0.5"
+            >
+              <img
+                :src="url"
+                class="w-full h-auto object-contain rounded"
+                :alt="'Halaman ' + (idx + 1)"
+              />
+              <span
+                class="absolute bottom-2 right-2 px-1.5 py-0.5 bg-slate-950/85 text-[9px] text-slate-400 font-bold rounded"
+              >
                 Halaman {{ idx + 1 }}
               </span>
             </div>
@@ -930,10 +1180,15 @@ onUnmounted(() => {
             class="flex items-center gap-3 p-2.5 bg-slate-950/60 border border-slate-800/60 rounded-xl group hover:border-slate-700/60 transition-all"
           >
             <!-- Page Number -->
-            <span class="text-[10px] font-bold text-slate-500 font-mono w-5 text-center flex-shrink-0">{{ idx + 1 }}</span>
+            <span
+              class="text-[10px] font-bold text-slate-500 font-mono w-5 text-center flex-shrink-0"
+              >{{ idx + 1 }}</span
+            >
 
             <!-- Thumbnail -->
-            <div class="w-12 h-12 rounded-lg overflow-hidden border border-slate-800 bg-slate-900 flex-shrink-0">
+            <div
+              class="w-12 h-12 rounded-lg overflow-hidden border border-slate-800 bg-slate-900 flex-shrink-0"
+            >
               <img :src="img.url" class="w-full h-full object-cover" :alt="img.name" />
             </div>
 
@@ -944,7 +1199,9 @@ onUnmounted(() => {
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center gap-1 flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
+            <div
+              class="flex items-center gap-1 flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
+            >
               <button
                 type="button"
                 @click="moveImage(idx, -1)"
@@ -953,7 +1210,12 @@ onUnmounted(() => {
                 title="Pindah ke atas"
               >
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M5 15l7-7 7 7"
+                  />
                 </svg>
               </button>
               <button
@@ -964,7 +1226,12 @@ onUnmounted(() => {
                 title="Pindah ke bawah"
               >
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               <button
@@ -974,7 +1241,12 @@ onUnmounted(() => {
                 title="Hapus gambar"
               >
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -982,24 +1254,45 @@ onUnmounted(() => {
         </div>
 
         <!-- Size Comparison (when PDF is generated) -->
-        <div v-if="convertedPdfUrl" class="flex items-center justify-between p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs">
+        <div
+          v-if="convertedPdfUrl"
+          class="flex items-center justify-between p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs"
+        >
           <div class="flex items-center gap-4">
             <div>
-              <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Total Gambar</span>
-              <p class="font-bold text-slate-300 font-mono mt-0.5">{{ formatSize(totalImagesSize) }}</p>
+              <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+                >Total Gambar</span
+              >
+              <p class="font-bold text-slate-300 font-mono mt-0.5">
+                {{ formatSize(totalImagesSize) }}
+              </p>
             </div>
-            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            <svg
+              class="w-4 h-4 text-slate-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M14 5l7 7m0 0l-7 7m7-7H3"
+              />
             </svg>
             <div>
-              <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Hasil PDF</span>
+              <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+                >Hasil PDF</span
+              >
               <p class="font-bold font-mono mt-0.5 text-brand-400">
                 {{ formatSize(convertedPdfSize) }}
               </p>
             </div>
           </div>
           <div v-if="imagesToPdfSavings > 0" class="text-right">
-            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]">Penghematan</span>
+            <span class="text-slate-500 font-medium uppercase tracking-wider text-[9px]"
+              >Penghematan</span
+            >
             <p class="font-black font-mono text-xs mt-0.5 text-emerald-400">
               -{{ imagesToPdfSavings }}%
             </p>
@@ -1007,12 +1300,27 @@ onUnmounted(() => {
         </div>
 
         <!-- Info Box (Before conversion) -->
-        <div v-if="!convertedPdfUrl" class="text-xs text-slate-500 bg-slate-950/40 p-3 rounded-lg border border-slate-800/40 flex items-start gap-2">
-          <svg class="w-4 h-4 text-brand-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div
+          v-if="!convertedPdfUrl"
+          class="text-xs text-slate-500 bg-slate-950/40 p-3 rounded-lg border border-slate-800/40 flex items-start gap-2"
+        >
+          <svg
+            class="w-4 h-4 text-brand-500 flex-shrink-0 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span>
-            Setiap halaman PDF akan disesuaikan secara otomatis dengan lebar seragam (A4 - 210mm) agar sejajar, sementara tinggi masing-masing halaman beradaptasi dengan rasio aspek gambar aslinya tanpa ada pemotongan.
+            Setiap halaman PDF akan disesuaikan secara otomatis dengan lebar seragam (A4 - 210mm)
+            agar sejajar, sementara tinggi masing-masing halaman beradaptasi dengan rasio aspek
+            gambar aslinya tanpa ada pemotongan.
           </span>
         </div>
 
@@ -1024,8 +1332,18 @@ onUnmounted(() => {
               @click="backToImageEditing"
               class="flex-grow sm:flex-grow-0 px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 justify-center cursor-pointer active:scale-95 flex-shrink-0"
             >
-              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <svg
+                class="w-4 h-4 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2.5"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
               </svg>
               Edit Kembali
             </button>
@@ -1038,14 +1356,19 @@ onUnmounted(() => {
               Reset
             </button>
           </div>
-          
+
           <button
             type="button"
             @click="downloadConvertedPdf"
             class="w-full sm:flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
             </svg>
             Unduh Berkas PDF
             <span class="text-[10px] opacity-70">({{ formatSize(convertedPdfSize) }})</span>

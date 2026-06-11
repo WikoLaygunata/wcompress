@@ -1,5 +1,14 @@
 <script setup>
-import { ref, onMounted, onUnmounted, onActivated, onDeactivated, computed, watch, inject } from 'vue'
+import {
+  ref,
+  onMounted,
+  onUnmounted,
+  onActivated,
+  onDeactivated,
+  computed,
+  watch,
+  inject,
+} from 'vue'
 import imageCompression from 'browser-image-compression'
 import mockImageUrl from '../assets/hahaha.jpg'
 
@@ -37,7 +46,7 @@ const scrollToPreview = () => {
     const offsetPosition = elementPosition - headerHeight
     window.scrollTo({
       top: offsetPosition,
-      behavior: 'smooth'
+      behavior: 'smooth',
     })
   }
 }
@@ -739,7 +748,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
         >
           Reset
         </button>
-        
+
         <button
           type="button"
           :disabled="!compressedUrl || isCompressing"
