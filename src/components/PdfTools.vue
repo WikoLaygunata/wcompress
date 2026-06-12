@@ -13,13 +13,13 @@ const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | '
   <div id="panel-pdftools" class="max-w-6xl mx-auto w-full space-y-6">
     <!-- Sub-Tab Navigation -->
     <div
-      class="flex p-1 bg-slate-900/60 border border-slate-800/80 rounded-xl max-w-2xl mx-auto w-full overflow-x-auto custom-scrollbar"
+      class="grid grid-cols-2 sm:flex p-1 bg-slate-900/60 border border-slate-800/80 rounded-xl max-w-2xl mx-auto w-full gap-1 sm:gap-0 overflow-x-auto custom-scrollbar"
     >
       <button
         type="button"
         @click="activeSubTab = 'compress'"
         :class="[
-          'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-max',
+          'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-0 sm:min-w-max',
           activeSubTab === 'compress'
             ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40',
@@ -35,7 +35,7 @@ const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | '
         type="button"
         @click="activeSubTab = 'img2pdf'"
         :class="[
-          'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-max',
+          'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-0 sm:min-w-max',
           activeSubTab === 'img2pdf'
             ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40',
@@ -51,7 +51,7 @@ const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | '
         type="button"
         @click="activeSubTab = 'dismantle'"
         :class="[
-          'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-max',
+          'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-0 sm:min-w-max',
           activeSubTab === 'dismantle'
             ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40',
@@ -67,7 +67,7 @@ const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | '
         type="button"
         @click="activeSubTab = 'merge'"
         :class="[
-          'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-max',
+          'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-0 sm:min-w-max',
           activeSubTab === 'merge'
             ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40',
