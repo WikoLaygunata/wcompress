@@ -11,8 +11,11 @@ import {
 } from 'vue'
 import imageCompression from 'browser-image-compression'
 import mockImageUrl from '../assets/hahaha.jpg'
+import JSZip from 'jszip'
 
 const showToast = inject('showToast')
+
+const uploadMode = ref('single')
 
 const selectedFormat = ref('webp')
 const quality = ref(80)
@@ -20,6 +23,7 @@ const resizeEnabled = ref(true)
 const customWidth = ref(1920)
 const preserveExif = ref(true)
 
+// Single Mode State
 const originalFile = ref(null)
 const originalUrl = ref('')
 const originalSize = ref(0)
@@ -31,6 +35,12 @@ const compressedDim = ref('-')
 
 const isCompressing = ref(false)
 const mockImageActive = ref(false)
+
+// Multi Mode State
+const multiFiles = ref([])
+const currentCompressIndex = ref(-1)
+const multiIsCompressing = ref(false)
+
 const comparisonPosition = ref(50)
 const isDragging = ref(false)
 const comparisonContainer = ref(null)
@@ -69,19 +79,28 @@ const spaceSavings = computed(() => {
   return savings > 0 ? Math.round(savings) : 0
 })
 
+const setMode = (mode) => {
+  uploadMode.value = mode
+  clearImages()
+}
+
 // Update selected format
 const setFormat = (format) => {
   selectedFormat.value = format
-  if (originalFile.value) {
+  if (uploadMode.value === 'single' && originalFile.value) {
     runCompression()
+  } else if (uploadMode.value === 'multi' && multiFiles.value.length > 0) {
+    recompressAllMulti()
   }
 }
 
 // Update resize width preset
 const setWidthPreset = (width) => {
   customWidth.value = width
-  if (originalFile.value) {
+  if (uploadMode.value === 'single' && originalFile.value) {
     runCompression()
+  } else if (uploadMode.value === 'multi' && multiFiles.value.length > 0) {
+    recompressAllMulti()
   }
 }
 
@@ -89,7 +108,149 @@ const setWidthPreset = (width) => {
 const handleFileUpload = (e) => {
   const files = e.target.files || e.dataTransfer?.files
   if (!files || files.length === 0) return
-  processFile(files[0])
+  
+  if (uploadMode.value === 'single') {
+    processFile(files[0])
+  } else {
+    processMultiFiles(Array.from(files))
+  }
+  
+  if (e.target.value) e.target.value = ''
+}
+
+const processMultiFiles = (files) => {
+  const validFiles = files.filter(f => f.type.startsWith('image/'))
+  if (validFiles.length === 0) {
+    showToast('File tidak valid', 'Mohon unggah file gambar saja.', 'warning')
+    return
+  }
+
+  if (validFiles.length > 50) {
+    showToast('Peringatan', 'Anda mengunggah lebih dari 50 gambar. Proses kompresi mungkin memakan waktu agak lama.', 'warning')
+  }
+
+  const newFiles = validFiles.map(file => {
+    return {
+      id: Date.now() + Math.random().toString(36).substring(2, 9),
+      file,
+      name: file.name,
+      originalUrl: URL.createObjectURL(file),
+      originalSize: file.size,
+      compressedUrl: '',
+      compressedSize: 0,
+      compressedBlob: null,
+      status: 'pending'
+    }
+  })
+
+  multiFiles.value = [...multiFiles.value, ...newFiles]
+  
+  scrollToPreview()
+
+  if (!multiIsCompressing.value) {
+    processNextMultiFile()
+  }
+}
+
+const processNextMultiFile = async () => {
+  const nextIndex = multiFiles.value.findIndex(f => f.status === 'pending')
+  if (nextIndex === -1) {
+    multiIsCompressing.value = false
+    currentCompressIndex.value = -1
+    return
+  }
+
+  multiIsCompressing.value = true
+  currentCompressIndex.value = nextIndex
+  const fileObj = multiFiles.value[nextIndex]
+  fileObj.status = 'compressing'
+
+  try {
+    let mimeType = 'image/webp'
+    if (selectedFormat.value === 'jpeg') mimeType = 'image/jpeg'
+    if (selectedFormat.value === 'png') mimeType = 'image/png'
+
+    const targetSizeMB = (fileObj.originalSize / (1024 * 1024)) * (quality.value / 100)
+    const options = {
+      maxSizeMB: Math.max(0.01, targetSizeMB),
+      maxWidthOrHeight: resizeEnabled.value ? customWidth.value : undefined,
+      useWebWorker: true,
+      preserveEXIF: preserveExif.value,
+      fileType: mimeType,
+      initialQuality: quality.value / 100,
+      alwaysKeepResolution: !resizeEnabled.value,
+    }
+
+    const compressedBlob = await imageCompression(fileObj.file, options)
+    
+    fileObj.compressedBlob = compressedBlob
+    fileObj.compressedUrl = URL.createObjectURL(compressedBlob)
+    fileObj.compressedSize = compressedBlob.size
+    fileObj.status = 'done'
+  } catch (error) {
+    console.error(error)
+    fileObj.status = 'error'
+  }
+
+  // Lanjut kompres file berikutnya
+  processNextMultiFile()
+}
+
+const recompressAllMulti = () => {
+  multiFiles.value.forEach(f => {
+    if (f.compressedUrl) URL.revokeObjectURL(f.compressedUrl)
+    f.compressedUrl = ''
+    f.compressedSize = 0
+    f.compressedBlob = null
+    f.status = 'pending'
+  })
+  if (!multiIsCompressing.value) {
+    processNextMultiFile()
+  }
+}
+
+const downloadAllZip = async () => {
+  if (multiFiles.value.length === 0) return
+  const completedFiles = multiFiles.value.filter(f => f.status === 'done')
+  
+  if (completedFiles.length === 0) {
+    showToast('Belum Ada yang Selesai', 'Tunggu kompresi selesai terlebih dahulu.', 'warning')
+    return
+  }
+  
+  showToast('Menyiapkan ZIP', 'Sedang memaketkan gambar Anda...', 'info')
+  const zip = new JSZip()
+  
+  completedFiles.forEach((fileObj) => {
+    const ext = selectedFormat.value
+    let baseName = fileObj.name.substring(0, fileObj.name.lastIndexOf('.')) || fileObj.name
+    zip.file(`${baseName}_compressed.${ext}`, fileObj.compressedBlob)
+  })
+
+  try {
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(zipBlob)
+    a.download = `wcompress_batch_${Date.now()}.zip`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(a.href)
+    showToast('Unduhan Selesai', 'File ZIP berhasil disimpan.')
+  } catch (error) {
+    console.error(error)
+    showToast('Gagal Membuat ZIP', 'Terjadi kesalahan saat memaketkan file.', 'error')
+  }
+}
+
+const removeMultiFile = (id) => {
+  const index = multiFiles.value.findIndex(f => f.id === id)
+  if (index !== -1) {
+    const f = multiFiles.value[index]
+    if (f.originalUrl) URL.revokeObjectURL(f.originalUrl)
+    if (f.compressedUrl) URL.revokeObjectURL(f.compressedUrl)
+    multiFiles.value.splice(index, 1)
+  }
 }
 
 const processFile = (file) => {
@@ -243,6 +404,14 @@ const clearImages = () => {
   compressedDim.value = '-'
   originalSize.value = 0
   compressedSize.value = 0
+
+  multiFiles.value.forEach(f => {
+    if (f.originalUrl) URL.revokeObjectURL(f.originalUrl)
+    if (f.compressedUrl) URL.revokeObjectURL(f.compressedUrl)
+  })
+  multiFiles.value = []
+  currentCompressIndex.value = -1
+  multiIsCompressing.value = false
 }
 
 // Lifecycle Hooks
@@ -268,6 +437,11 @@ onUnmounted(() => {
 
   if (originalUrl.value) URL.revokeObjectURL(originalUrl.value)
   if (compressedUrl.value) URL.revokeObjectURL(compressedUrl.value)
+  
+  multiFiles.value.forEach(f => {
+    if (f.originalUrl) URL.revokeObjectURL(f.originalUrl)
+    if (f.compressedUrl) URL.revokeObjectURL(f.compressedUrl)
+  })
 })
 
 // Watch reactive properties to trigger compression automatically with debounce
@@ -275,12 +449,16 @@ let debounceTimeout = null
 const runCompressionDebounced = () => {
   if (debounceTimeout) clearTimeout(debounceTimeout)
   debounceTimeout = setTimeout(() => {
-    runCompression()
+    if (uploadMode.value === 'single' && originalFile.value) {
+      runCompression()
+    } else if (uploadMode.value === 'multi' && multiFiles.value.length > 0) {
+      recompressAllMulti()
+    }
   }, 250)
 }
 
 watch([resizeEnabled, customWidth, preserveExif, quality], () => {
-  if (originalFile.value) {
+  if (originalFile.value || multiFiles.value.length > 0) {
     runCompressionDebounced()
   }
 })
@@ -297,13 +475,11 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
           <span class="w-1.5 h-4 bg-brand-500 rounded"></span>
           Konfigurasi Mesin
         </h3>
-        <button
-          v-if="originalFile"
-          @click="clearImages"
-          class="text-xs font-semibold text-rose-400 hover:text-rose-300 transition cursor-pointer"
-        >
-          Hapus Gambar
-        </button>
+        
+        <div class="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-1">
+          <button @click="setMode('single')" :class="['px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer', uploadMode === 'single' ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900']">Single</button>
+          <button @click="setMode('multi')" :class="['px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer', uploadMode === 'multi' ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900']">Multi</button>
+        </div>
       </div>
 
       <!-- File Dropzone -->
@@ -323,6 +499,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             @change="handleFileUpload"
             class="hidden"
             accept="image/*"
+            :multiple="uploadMode === 'multi'"
           />
           <div class="space-y-2 pointer-events-none py-3">
             <div
@@ -547,29 +724,36 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="w-1.5 h-4 bg-brand-500 rounded"></span>
-            Live Preview & Estimasi
+            {{ uploadMode === 'single' ? 'Live Preview & Estimasi' : 'Daftar Gambar & Progres' }}
           </h3>
-          <span
-            v-if="isCompressing"
-            class="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse"
-          >
-            Memproses...
+          
+          <span v-if="uploadMode === 'single'">
+            <span v-if="isCompressing" class="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
+              Memproses...
+            </span>
+            <span v-else-if="originalUrl" class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
+              Kompresi Selesai
+            </span>
+            <span v-else class="text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
+              Menunggu Gambar
+            </span>
           </span>
-          <span
-            v-else-if="originalUrl"
-            class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium"
-          >
-            Kompresi Selesai
-          </span>
-          <span
-            v-else
-            class="text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium"
-          >
-            Menunggu Gambar
+          
+          <span v-else>
+            <span v-if="multiIsCompressing" class="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
+              Memproses {{ currentCompressIndex + 1 }} dari {{ multiFiles.length }}...
+            </span>
+            <span v-else-if="multiFiles.length > 0" class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
+              Selesai ({{ multiFiles.filter(f => f.status === 'done').length }}/{{ multiFiles.length }})
+            </span>
+            <span v-else class="text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
+              Menunggu Gambar
+            </span>
           </span>
         </div>
 
         <!-- Preview Box -->
+        <template v-if="uploadMode === 'single'">
         <div
           class="relative min-h-[350px] w-full rounded-xl border border-slate-800 overflow-hidden bg-slate-950 flex items-center justify-center select-none group mb-6"
         >
@@ -736,12 +920,57 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             </div>
           </div>
         </div>
+        </template>
+        
+        <template v-else>
+          <div v-if="multiFiles.length === 0" class="relative min-h-[350px] w-full rounded-xl border border-slate-800 overflow-hidden bg-slate-950 flex flex-col items-center justify-center text-center p-6 space-y-4 mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-400 shadow-inner">
+              <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div class="space-y-1">
+              <p class="text-sm font-semibold text-slate-300">Belum Ada Gambar</p>
+              <p class="text-xs text-slate-500 max-w-xs">Unggah beberapa gambar untuk memulai kompresi batch.</p>
+            </div>
+          </div>
+          
+          <div v-else class="space-y-3 mb-6 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
+            <div v-for="file in multiFiles" :key="file.id" class="flex items-center gap-4 bg-slate-950/50 border border-slate-800/80 rounded-xl p-3 hover:border-slate-700 transition-colors">
+              <div class="w-14 h-14 shrink-0 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center">
+                <img v-if="file.compressedUrl || file.originalUrl" :src="file.compressedUrl || file.originalUrl" class="w-full h-full object-cover" />
+              </div>
+              <div class="flex-grow min-w-0">
+                <p class="text-sm font-semibold text-slate-200 truncate">{{ file.name }}</p>
+                <div class="flex items-center gap-3 mt-1">
+                  <span class="text-xs text-slate-500 font-mono">{{ formatSize(file.originalSize) }}</span>
+                  <svg class="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  <span v-if="file.status === 'done'" class="text-xs font-bold text-brand-400 font-mono">{{ formatSize(file.compressedSize) }}</span>
+                  <span v-else-if="file.status === 'compressing'" class="text-xs text-amber-500 animate-pulse">Mengompresi...</span>
+                  <span v-else-if="file.status === 'error'" class="text-xs text-rose-500">Error</span>
+                  <span v-else class="text-xs text-slate-500">Menunggu...</span>
+                  
+                  <span v-if="file.status === 'done'" class="text-[10px] bg-brand-500/10 text-brand-400 px-1.5 py-0.5 rounded font-bold">
+                    -{{ Math.round((1 - file.compressedSize / file.originalSize) * 100) }}%
+                  </span>
+                </div>
+              </div>
+              <div class="shrink-0 flex items-center gap-2">
+                <div v-if="file.status === 'done'" class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div v-else-if="file.status === 'compressing'" class="w-5 h-5 rounded-full border-2 border-slate-700 border-t-brand-500 animate-spin mr-1"></div>
+                <button @click="removeMultiFile(file.id)" class="w-8 h-8 rounded-full hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 flex items-center justify-center transition-colors cursor-pointer">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- Action Buttons Group -->
       <div class="flex flex-col sm:flex-row gap-3 mt-6 w-full">
         <button
-          v-if="originalUrl"
+          v-if="(uploadMode === 'single' && originalUrl) || (uploadMode === 'multi' && multiFiles.length > 0)"
           type="button"
           @click="clearImages"
           class="w-full sm:w-auto px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 justify-center cursor-pointer active:scale-95 flex-shrink-0"
@@ -750,6 +979,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
         </button>
 
         <button
+          v-if="uploadMode === 'single'"
           type="button"
           :disabled="!compressedUrl || isCompressing"
           @click="downloadCompressed"
@@ -761,14 +991,27 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
           ]"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2.5"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
           Unduh Gambar Hasil Kompresi
+        </button>
+        
+        <button
+          v-else
+          type="button"
+          :disabled="multiFiles.length === 0 || multiIsCompressing || !multiFiles.some(f => f.status === 'done')"
+          @click="downloadAllZip"
+          :class="[
+            'w-full sm:flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
+            multiFiles.some(f => f.status === 'done') && !multiIsCompressing
+              ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]'
+              : 'bg-slate-800 text-slate-500 cursor-not-allowed',
+          ]"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          Unduh Semua (ZIP)
         </button>
       </div>
     </div>
