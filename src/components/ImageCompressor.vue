@@ -12,6 +12,7 @@ import {
 import imageCompression from 'browser-image-compression'
 import mockImageUrl from '../assets/hahaha.jpg'
 import JSZip from 'jszip'
+import { convert as heicConvert } from 'heiccon'
 
 const showToast = inject('showToast')
 
@@ -119,9 +120,9 @@ const handleFileUpload = (e) => {
 }
 
 const processMultiFiles = (files) => {
-  const validFiles = files.filter(f => f.type.startsWith('image/'))
+  const validFiles = files.filter(f => f.type.startsWith('image/') || f.name.toLowerCase().endsWith('.heic') || f.name.toLowerCase().endsWith('.heif'))
   if (validFiles.length === 0) {
-    showToast('File tidak valid', 'Mohon unggah file gambar saja.', 'warning')
+    showToast('File tidak valid', 'Mohon unggah file gambar atau HEIC.', 'warning')
     return
   }
 
@@ -166,6 +167,29 @@ const processNextMultiFile = async () => {
   fileObj.status = 'compressing'
 
   try {
+    let fileToProcess = fileObj.file
+    const isHeic = fileToProcess.name.toLowerCase().endsWith('.heic') || fileToProcess.name.toLowerCase().endsWith('.heif') || fileToProcess.type === 'image/heic' || fileToProcess.type === 'image/heif'
+    
+    if (isHeic) {
+      try {
+        const result = await heicConvert(fileToProcess, {
+          format: 'jpg',
+          quality: 90
+        })
+        const blob = result.blob
+        fileToProcess = new File([blob], fileToProcess.name.replace(/\.heic$|\.heif$/i, '.jpeg'), { type: 'image/jpeg' })
+        
+        if (fileObj.originalUrl) URL.revokeObjectURL(fileObj.originalUrl)
+        fileObj.originalUrl = URL.createObjectURL(fileToProcess)
+      } catch (e) {
+        console.error('HEIC2ANY Error (multi):', e);
+        showToast('Gagal konversi', e?.message ? `Error ${fileToProcess.name}: ${e.message}` : 'File HEIC tidak dapat dibaca.', 'error')
+        fileObj.status = 'error'
+        processNextMultiFile()
+        return
+      }
+    }
+
     let mimeType = 'image/webp'
     if (selectedFormat.value === 'jpeg') mimeType = 'image/jpeg'
     if (selectedFormat.value === 'png') mimeType = 'image/png'
@@ -181,7 +205,7 @@ const processNextMultiFile = async () => {
       alwaysKeepResolution: !resizeEnabled.value,
     }
 
-    const compressedBlob = await imageCompression(fileObj.file, options)
+    const compressedBlob = await imageCompression(fileToProcess, options)
     
     fileObj.compressedBlob = compressedBlob
     fileObj.compressedUrl = URL.createObjectURL(compressedBlob)
@@ -253,17 +277,40 @@ const removeMultiFile = (id) => {
   }
 }
 
-const processFile = (file) => {
-  if (!file.type.startsWith('image/')) {
-    showToast('File tidak valid', 'Mohon unggah file gambar saja.', 'warning')
+const processFile = async (file) => {
+  let fileToProcess = file
+  const isHeic = fileToProcess.name.toLowerCase().endsWith('.heic') || fileToProcess.name.toLowerCase().endsWith('.heif') || fileToProcess.type === 'image/heic' || fileToProcess.type === 'image/heif'
+  
+  if (!fileToProcess.type.startsWith('image/') && !isHeic) {
+    showToast('File tidak valid', 'Mohon unggah file gambar atau HEIC.', 'warning')
     return
   }
-  originalFile.value = file
+
+  if (isHeic) {
+    showToast('Mengonversi HEIC', 'Sedang mengubah format agar dapat diproses...', 'info')
+    isCompressing.value = true
+    try {
+      const result = await heicConvert(fileToProcess, {
+        format: 'jpg',
+        quality: 90
+      })
+      const blob = result.blob
+      fileToProcess = new File([blob], fileToProcess.name.replace(/\.heic$|\.heif$/i, '.jpeg'), { type: 'image/jpeg' })
+    } catch (e) {
+      console.error('HEICCON Error:', e);
+      isCompressing.value = false
+      showToast('Gagal konversi', e?.message ? `Error: ${e.message}` : 'File HEIC tidak dapat dibaca.', 'error')
+      return
+    }
+    isCompressing.value = false
+  }
+
+  originalFile.value = fileToProcess
   mockImageActive.value = false
 
   if (originalUrl.value) URL.revokeObjectURL(originalUrl.value)
-  originalUrl.value = URL.createObjectURL(file)
-  originalSize.value = file.size
+  originalUrl.value = URL.createObjectURL(fileToProcess)
+  originalSize.value = fileToProcess.size
 
   const img = new Image()
   img.src = originalUrl.value
