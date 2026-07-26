@@ -774,26 +774,26 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             {{ uploadMode === 'single' ? 'Live Preview & Estimasi' : 'Daftar Gambar & Progres' }}
           </h3>
           
-          <span v-if="uploadMode === 'single'">
-            <span v-if="isCompressing" class="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
+          <span v-if="uploadMode === 'single'" class="shrink-0">
+            <span v-if="isCompressing" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
               Memproses...
             </span>
-            <span v-else-if="originalUrl" class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
+            <span v-else-if="originalUrl" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
               Kompresi Selesai
             </span>
-            <span v-else class="text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
+            <span v-else class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
               Menunggu Gambar
             </span>
           </span>
           
-          <span v-else>
-            <span v-if="multiIsCompressing" class="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
+          <span v-else class="shrink-0">
+            <span v-if="multiIsCompressing" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
               Memproses {{ currentCompressIndex + 1 }} dari {{ multiFiles.length }}...
             </span>
-            <span v-else-if="multiFiles.length > 0" class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
+            <span v-else-if="multiFiles.length > 0" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
               Selesai ({{ multiFiles.filter(f => f.status === 'done').length }}/{{ multiFiles.length }})
             </span>
-            <span v-else class="text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
+            <span v-else class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
               Menunggu Gambar
             </span>
           </span>
