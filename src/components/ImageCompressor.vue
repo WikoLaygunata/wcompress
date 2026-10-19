@@ -12,7 +12,7 @@ import {
 import imageCompression from 'browser-image-compression'
 import mockImageUrl from '../assets/hahaha.jpg'
 import JSZip from 'jszip'
-import { convert as heicConvert } from 'heiccon'
+import { isHeicFile, ensureCompatibleImage, HEIC_ACCEPT_TYPES } from '../utils/heicHelper'
 
 const showToast = inject('showToast')
 
@@ -119,8 +119,14 @@ const handleFileUpload = (e) => {
   if (e.target.value) e.target.value = ''
 }
 
-const processMultiFiles = (files) => {
-  const validFiles = files.filter(f => f.type.startsWith('image/') || f.name.toLowerCase().endsWith('.heic') || f.name.toLowerCase().endsWith('.heif'))
+const processMultiFiles = async (files) => {
+  const fileChecks = await Promise.all(
+    files.map(async (f) => ({
+      file: f,
+      isValid: f.type.startsWith('image/') || (await isHeicFile(f)),
+    }))
+  )
+  const validFiles = fileChecks.filter((c) => c.isValid).map((c) => c.file)
   if (validFiles.length === 0) {
     showToast('File tidak valid', 'Mohon unggah file gambar atau HEIC.', 'warning')
     return
@@ -135,7 +141,7 @@ const processMultiFiles = (files) => {
       id: Date.now() + Math.random().toString(36).substring(2, 9),
       file,
       name: file.name,
-      originalUrl: URL.createObjectURL(file),
+      originalUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
       originalSize: file.size,
       compressedUrl: '',
       compressedSize: 0,
@@ -168,21 +174,16 @@ const processNextMultiFile = async () => {
 
   try {
     let fileToProcess = fileObj.file
-    const isHeic = fileToProcess.name.toLowerCase().endsWith('.heic') || fileToProcess.name.toLowerCase().endsWith('.heif') || fileToProcess.type === 'image/heic' || fileToProcess.type === 'image/heif'
+    const isHeic = await isHeicFile(fileToProcess)
     
     if (isHeic) {
       try {
-        const result = await heicConvert(fileToProcess, {
-          format: 'jpg',
-          quality: 90
-        })
-        const blob = result.blob
-        fileToProcess = new File([blob], fileToProcess.name.replace(/\.heic$|\.heif$/i, '.jpeg'), { type: 'image/jpeg' })
+        fileToProcess = await ensureCompatibleImage(fileToProcess, 'jpg', 90)
         
         if (fileObj.originalUrl) URL.revokeObjectURL(fileObj.originalUrl)
         fileObj.originalUrl = URL.createObjectURL(fileToProcess)
       } catch (e) {
-        console.error('HEIC2ANY Error (multi):', e);
+        console.error('HEIC Error (multi):', e);
         showToast('Gagal konversi', e?.message ? `Error ${fileToProcess.name}: ${e.message}` : 'File HEIC tidak dapat dibaca.', 'error')
         fileObj.status = 'error'
         processNextMultiFile()
@@ -279,7 +280,7 @@ const removeMultiFile = (id) => {
 
 const processFile = async (file) => {
   let fileToProcess = file
-  const isHeic = fileToProcess.name.toLowerCase().endsWith('.heic') || fileToProcess.name.toLowerCase().endsWith('.heif') || fileToProcess.type === 'image/heic' || fileToProcess.type === 'image/heif'
+  const isHeic = await isHeicFile(fileToProcess)
   
   if (!fileToProcess.type.startsWith('image/') && !isHeic) {
     showToast('File tidak valid', 'Mohon unggah file gambar atau HEIC.', 'warning')
@@ -290,12 +291,7 @@ const processFile = async (file) => {
     showToast('Mengonversi HEIC', 'Sedang mengubah format agar dapat diproses...', 'info')
     isCompressing.value = true
     try {
-      const result = await heicConvert(fileToProcess, {
-        format: 'jpg',
-        quality: 90
-      })
-      const blob = result.blob
-      fileToProcess = new File([blob], fileToProcess.name.replace(/\.heic$|\.heif$/i, '.jpeg'), { type: 'image/jpeg' })
+      fileToProcess = await ensureCompatibleImage(fileToProcess, 'jpg', 90)
     } catch (e) {
       console.error('HEICCON Error:', e);
       isCompressing.value = false
@@ -545,7 +541,7 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             ref="fileInput"
             @change="handleFileUpload"
             class="hidden"
-            accept="image/*"
+            :accept="HEIC_ACCEPT_TYPES"
             :multiple="uploadMode === 'multi'"
           />
           <div class="space-y-2 pointer-events-none py-3">

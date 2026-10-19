@@ -3,6 +3,7 @@ import { ref, onUnmounted, inject, computed, watch } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import { jsPDF } from 'jspdf'
+import { isHeicFile, ensureCompatibleImage, HEIC_ACCEPT_TYPES } from '../utils/heicHelper'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
@@ -62,22 +63,40 @@ const generateConvertPreview = async (blob) => {
 // ─── IMAGE TO PDF LOGIC ───
 const triggerImgInput = () => imgFileInput.value?.click()
 
-const handleImagesUpload = (e) => {
+const handleImagesUpload = async (e) => {
   const files = e.target.files || e.dataTransfer?.files
   if (!files || files.length === 0) return
 
+  let addedCount = 0
   for (const file of files) {
-    if (!file.type.startsWith('image/')) continue
+    let fileToProcess = file
+    const isHeic = await isHeicFile(fileToProcess)
+    if (!fileToProcess.type.startsWith('image/') && !isHeic) continue
+
+    if (isHeic) {
+      try {
+        fileToProcess = await ensureCompatibleImage(fileToProcess, 'jpg', 90)
+      } catch (err) {
+        console.error('HEIC to PDF error:', err)
+        continue
+      }
+    }
+
     images.value.push({
       id: ++imageIdCounter,
-      file,
-      name: file.name,
-      size: file.size,
-      url: URL.createObjectURL(file),
+      file: fileToProcess,
+      name: fileToProcess.name,
+      size: fileToProcess.size,
+      url: URL.createObjectURL(fileToProcess),
     })
+    addedCount++
   }
 
-  showToast('Gambar Ditambahkan', `${files.length} gambar berhasil diunggah.`)
+  if (addedCount > 0) {
+    showToast('Gambar Ditambahkan', `${addedCount} gambar berhasil diunggah.`)
+  } else {
+    showToast('File Tidak Valid', 'Mohon unggah file gambar atau HEIC.', 'warning')
+  }
   if (imgFileInput.value) imgFileInput.value.value = ''
 }
 
@@ -257,7 +276,7 @@ onUnmounted(() => {
             ref="imgFileInput"
             @change="handleImagesUpload"
             class="hidden"
-            accept="image/*"
+            :accept="HEIC_ACCEPT_TYPES"
             multiple
           />
           <div class="space-y-2 pointer-events-none py-2">
@@ -284,7 +303,7 @@ onUnmounted(() => {
                 <span class="text-brand-400 group-hover:underline">telusuri</span>
               </p>
               <p class="text-[10px] text-slate-500">
-                Pilih banyak gambar sekaligus (JPEG, PNG, WEBP)
+                Pilih banyak gambar sekaligus (JPEG, PNG, WEBP, HEIC)
               </p>
             </div>
           </div>

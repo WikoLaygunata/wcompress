@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, onUnmounted, inject, onActivated, onDeactivated } from 'vue'
 import mockImageUrl from '../assets/hahaha.jpg'
+import { isHeicFile, ensureCompatibleImage, HEIC_ACCEPT_TYPES } from '../utils/heicHelper'
 
 const showToast = inject('showToast')
 
@@ -59,17 +60,34 @@ const handleAiFileUpload = (e) => {
   processAiFile(files[0])
 }
 
-const processAiFile = (file) => {
-  if (!file.type.startsWith('image/')) {
-    showToast('File tidak valid', 'Mohon unggah file gambar saja.', 'warning')
+const processAiFile = async (file) => {
+  let fileToProcess = file
+  const isHeic = await isHeicFile(fileToProcess)
+  if (!fileToProcess.type.startsWith('image/') && !isHeic) {
+    showToast('File tidak valid', 'Mohon unggah file gambar atau HEIC.', 'warning')
     return
   }
-  aiFile.value = file
+
+  if (isHeic) {
+    showToast('Mengonversi HEIC', 'Sedang mengubah format agar dapat diproses...', 'info')
+    aiIsProcessing.value = true
+    try {
+      fileToProcess = await ensureCompatibleImage(fileToProcess, 'png')
+    } catch (e) {
+      console.error('HEICCON Error (BgRemover):', e)
+      aiIsProcessing.value = false
+      showToast('Gagal konversi', 'File HEIC tidak dapat dibaca.', 'error')
+      return
+    }
+    aiIsProcessing.value = false
+  }
+
+  aiFile.value = fileToProcess
   aiMockActive.value = false
   aiOutputUrl.value = ''
 
   if (aiOriginalUrl.value) URL.revokeObjectURL(aiOriginalUrl.value)
-  aiOriginalUrl.value = URL.createObjectURL(file)
+  aiOriginalUrl.value = URL.createObjectURL(fileToProcess)
 
   showToast('Gambar Terunggah', 'Siap untuk diproses oleh AI Hapus BG.')
   scrollToPreview()
@@ -504,7 +522,7 @@ onUnmounted(() => {
             ref="aiFileInput"
             @change="handleAiFileUpload"
             class="hidden"
-            accept="image/*"
+            :accept="HEIC_ACCEPT_TYPES"
           />
           <div class="space-y-2 pointer-events-none py-2">
             <div
@@ -529,7 +547,7 @@ onUnmounted(() => {
                 Drag & drop gambarmu atau
                 <span class="text-brand-400 group-hover:underline">telusuri</span>
               </p>
-              <p class="text-[10px] text-slate-500">Mendukung JPEG, PNG, WEBP s.d 15MB</p>
+              <p class="text-[10px] text-slate-500">Mendukung JPEG, PNG, WEBP, HEIC s.d 15MB</p>
             </div>
           </div>
         </div>
