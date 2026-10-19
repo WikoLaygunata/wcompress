@@ -50,6 +50,19 @@ const previewPanel = ref(null)
 // Dropzone ref for compressor
 const fileInput = ref(null)
 
+// Compare Modal State (Side-by-Side / Stacked)
+const showCompareModal = ref(false)
+const compareLayout = ref('horizontal') // 'horizontal' (kiri-kanan) | 'vertical' (atas-bawah)
+const compareModalData = ref({
+  originalUrl: '',
+  compressedUrl: '',
+  originalSize: 0,
+  compressedSize: 0,
+  originalDim: '-',
+  compressedDim: '-',
+  name: '',
+})
+
 const scrollToPreview = () => {
   if (window.innerWidth < 1024 && previewPanel.value) {
     const headerHeight = 80
@@ -433,7 +446,57 @@ const stopDrag = () => {
   isDragging.value = false
 }
 
+// Compare Modal Methods
+const openCompareModal = (customData = null) => {
+  if (customData) {
+    compareModalData.value = {
+      originalUrl: customData.originalUrl || '',
+      compressedUrl: customData.compressedUrl || customData.originalUrl || '',
+      originalSize: customData.originalSize || 0,
+      compressedSize: customData.compressedSize || 0,
+      originalDim: customData.originalDim || '-',
+      compressedDim: customData.compressedDim || '-',
+      name: customData.name || 'Gambar',
+    }
+  } else {
+    compareModalData.value = {
+      originalUrl: originalUrl.value,
+      compressedUrl: compressedUrl.value || originalUrl.value,
+      originalSize: originalSize.value,
+      compressedSize: compressedSize.value,
+      originalDim: originalDim.value,
+      compressedDim: compressedDim.value,
+      name: originalFile.value?.name || 'Gambar',
+    }
+  }
+  showCompareModal.value = true
+}
+
+const closeCompareModal = () => {
+  showCompareModal.value = false
+}
+
+const downloadFromCompareModal = () => {
+  const url = compareModalData.value.compressedUrl || compareModalData.value.originalUrl
+  if (!url) return
+  const a = document.createElement('a')
+  a.href = url
+  const baseName = compareModalData.value.name ? compareModalData.value.name.replace(/\.[^/.]+$/, '') : `wcompress_${Date.now()}`
+  a.download = `${baseName}_compressed.${selectedFormat.value}`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  showToast('Unduhan Dimulai', 'File hasil kompresi berhasil disimpan.')
+}
+
+const handleKeyDown = (e) => {
+  if (e.key === 'Escape' && showCompareModal.value) {
+    closeCompareModal()
+  }
+}
+
 const clearImages = () => {
+  closeCompareModal()
   originalFile.value = null
   if (originalUrl.value) {
     URL.revokeObjectURL(originalUrl.value)
@@ -458,6 +521,10 @@ const clearImages = () => {
 }
 
 // Lifecycle Hooks
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
 onActivated(() => {
   window.addEventListener('mouseup', stopDrag)
   window.addEventListener('mousemove', onDrag)
@@ -473,6 +540,7 @@ onDeactivated(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
   window.removeEventListener('mouseup', stopDrag)
   window.removeEventListener('mousemove', onDrag)
   window.removeEventListener('touchend', stopDrag)
@@ -770,29 +838,44 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             {{ uploadMode === 'single' ? 'Live Preview & Estimasi' : 'Daftar Gambar & Progres' }}
           </h3>
           
-          <span v-if="uploadMode === 'single'" class="shrink-0">
-            <span v-if="isCompressing" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
-              Memproses...
+          <div class="flex items-center gap-2">
+            <button
+              v-if="uploadMode === 'single' && originalUrl"
+              type="button"
+              @click="openCompareModal()"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/80 transition-all cursor-pointer shadow-sm active:scale-95 hover:border-brand-500/40"
+              title="Bandingkan Gambar Berdampingan (Kiri-Kanan / Atas-Bawah)"
+            >
+              <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+              <span class="hidden sm:inline">Bandingkan 2 Sisi</span>
+            </button>
+
+            <span v-if="uploadMode === 'single'" class="shrink-0">
+              <span v-if="isCompressing" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
+                Memproses...
+              </span>
+              <span v-else-if="originalUrl" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
+                Kompresi Selesai
+              </span>
+              <span v-else class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
+                Menunggu Gambar
+              </span>
             </span>
-            <span v-else-if="originalUrl" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
-              Kompresi Selesai
+            
+            <span v-else class="shrink-0">
+              <span v-if="multiIsCompressing" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
+                Memproses {{ currentCompressIndex + 1 }} dari {{ multiFiles.length }}...
+              </span>
+              <span v-else-if="multiFiles.length > 0" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
+                Selesai ({{ multiFiles.filter(f => f.status === 'done').length }}/{{ multiFiles.length }})
+              </span>
+              <span v-else class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
+                Menunggu Gambar
+              </span>
             </span>
-            <span v-else class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
-              Menunggu Gambar
-            </span>
-          </span>
-          
-          <span v-else class="shrink-0">
-            <span v-if="multiIsCompressing" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-medium animate-pulse">
-              Memproses {{ currentCompressIndex + 1 }} dari {{ multiFiles.length }}...
-            </span>
-            <span v-else-if="multiFiles.length > 0" class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium">
-              Selesai ({{ multiFiles.filter(f => f.status === 'done').length }}/{{ multiFiles.length }})
-            </span>
-            <span v-else class="inline-flex items-center whitespace-nowrap text-[10px] px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-800 rounded font-medium">
-              Menunggu Gambar
-            </span>
-          </span>
+          </div>
         </div>
 
         <!-- Preview Box -->
@@ -874,6 +957,20 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
             >
               Terkompresi
             </div>
+
+            <!-- Floating button inside preview box -->
+            <button
+              v-if="originalUrl"
+              type="button"
+              @click.stop="openCompareModal()"
+              class="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-950/85 hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-brand-500/50 backdrop-blur-md shadow-lg transition-all cursor-pointer active:scale-95"
+              title="Buka Komparasi Layar Penuh"
+            >
+              <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              <span>Buka Layar Komparasi</span>
+            </button>
 
             <!-- Draggable Comparison Bar -->
             <div
@@ -997,6 +1094,18 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
                 </div>
               </div>
               <div class="shrink-0 flex items-center gap-2">
+                <button
+                  v-if="file.status === 'done'"
+                  type="button"
+                  @click="openCompareModal(file)"
+                  class="w-8 h-8 rounded-full hover:bg-brand-500/10 text-slate-400 hover:text-brand-400 flex items-center justify-center transition-colors cursor-pointer"
+                  title="Bandingkan Gambar Ini"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                </button>
                 <div v-if="file.status === 'done'" class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 </div>
@@ -1058,5 +1167,189 @@ watch([resizeEnabled, customWidth, preserveExif, quality], () => {
         </button>
       </div>
     </div>
+
+    <!-- Modal Komparasi Gambar (Kiri-Kanan / Atas-Bawah) -->
+    <transition name="modal-fade">
+      <div
+        v-if="showCompareModal"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6"
+      >
+        <!-- Backdrop -->
+        <div
+          @click="closeCompareModal"
+          class="absolute inset-0 bg-slate-950/85 backdrop-blur-md"
+        ></div>
+
+        <!-- Modal Container -->
+        <div
+          class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-7xl h-[92vh] max-h-[92vh] flex flex-col overflow-hidden shadow-2xl relative z-10 border-t-2 border-t-brand-500"
+        >
+          <!-- Modal Header -->
+          <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950/40">
+            <div class="flex items-center gap-3">
+              <span class="w-2 h-5 bg-brand-500 rounded"></span>
+              <div>
+                <h3 class="font-bold text-sm sm:text-base text-white flex items-center gap-2">
+                  Komparasi Gambar Berdampingan
+                  <span class="hidden sm:inline-block text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 max-w-[200px] truncate">
+                    {{ compareModalData.name }}
+                  </span>
+                </h3>
+                <p class="text-[11px] text-slate-400 hidden sm:block">
+                  Bandingkan langsung ketajaman dan detail piksel sebelum & sesudah dikompresi
+                </p>
+              </div>
+            </div>
+
+            <!-- Controls: Layout Switcher & Close -->
+            <div class="flex items-center gap-2 sm:gap-3">
+              <!-- Layout Toggle -->
+              <div class="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-1">
+                <button
+                  type="button"
+                  @click="compareLayout = 'horizontal'"
+                  :class="[
+                    'px-2.5 py-1 text-xs font-semibold rounded flex items-center gap-1.5 transition-colors cursor-pointer',
+                    compareLayout === 'horizontal'
+                      ? 'bg-brand-500 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ]"
+                  title="Tampilan Kiri - Kanan (Horizontal)"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16m6-16v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                  </svg>
+                  <span class="hidden md:inline">Kiri - Kanan</span>
+                </button>
+                <button
+                  type="button"
+                  @click="compareLayout = 'vertical'"
+                  :class="[
+                    'px-2.5 py-1 text-xs font-semibold rounded flex items-center gap-1.5 transition-colors cursor-pointer',
+                    compareLayout === 'vertical'
+                      ? 'bg-brand-500 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ]"
+                  title="Tampilan Atas - Bawah (Vertikal)"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9h16M4 15h16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                  </svg>
+                  <span class="hidden md:inline">Atas - Bawah</span>
+                </button>
+              </div>
+
+              <!-- Close Button -->
+              <button
+                type="button"
+                @click="closeCompareModal"
+                class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer border border-slate-700"
+                title="Tutup (Esc)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Body (Panels) -->
+          <div
+            class="flex-1 p-3 sm:p-4 min-h-0 overflow-y-auto"
+            :class="[
+              compareLayout === 'horizontal'
+                ? 'grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 h-full'
+                : 'grid grid-rows-2 gap-3 sm:gap-4 h-full'
+            ]"
+          >
+            <!-- Panel 1: Original Image -->
+            <div class="flex flex-col bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden min-h-0 relative">
+              <div class="px-3.5 py-2 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                    Gambar Asli
+                  </span>
+                  <span class="text-xs font-semibold text-slate-300 font-mono">
+                    {{ formatSize(compareModalData.originalSize) }}
+                  </span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-mono">
+                  {{ compareModalData.originalDim }}
+                </span>
+              </div>
+              <div class="flex-1 min-h-0 p-2 flex items-center justify-center overflow-hidden bg-slate-950/40 relative transparency-grid">
+                <img
+                  :src="compareModalData.originalUrl"
+                  class="w-full h-full object-contain pointer-events-none select-none relative z-10"
+                  alt="Original Preview"
+                />
+              </div>
+            </div>
+
+            <!-- Panel 2: Compressed Image -->
+            <div class="flex flex-col bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden min-h-0 relative">
+              <div class="px-3.5 py-2 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/30">
+                    Hasil Kompresi
+                  </span>
+                  <span class="text-xs font-semibold text-brand-400 font-mono">
+                    {{ formatSize(compareModalData.compressedSize) }}
+                  </span>
+                  <span
+                    v-if="compareModalData.originalSize && compareModalData.compressedSize"
+                    class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  >
+                    -{{ Math.max(0, Math.round((1 - compareModalData.compressedSize / compareModalData.originalSize) * 100)) }}%
+                  </span>
+                </div>
+                <span class="text-[11px] text-slate-400 font-mono">
+                  {{ compareModalData.compressedDim }}
+                </span>
+              </div>
+              <div class="flex-1 min-h-0 p-2 flex items-center justify-center overflow-hidden bg-slate-950/40 relative transparency-grid">
+                <img
+                  :src="compareModalData.compressedUrl || compareModalData.originalUrl"
+                  class="w-full h-full object-contain pointer-events-none select-none relative z-10"
+                  alt="Compressed Preview"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="px-5 py-3 border-t border-slate-800 bg-slate-950/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div class="flex items-center gap-4 text-xs text-slate-400">
+              <div class="flex items-center gap-2 font-mono">
+                <span class="text-slate-500">Hemat Ruang:</span>
+                <span class="font-bold text-emerald-400">
+                  {{ formatSize(Math.max(0, compareModalData.originalSize - compareModalData.compressedSize)) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="closeCompareModal"
+                class="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-800 hover:border-slate-700 bg-slate-900 text-slate-300 hover:text-white transition-all cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                @click="downloadFromCompareModal"
+                class="px-4 py-2 text-xs font-bold rounded-lg bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-500/20 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>Unduh Gambar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
