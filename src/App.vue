@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, provide, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ImageCompressor from './components/ImageCompressor.vue'
 import BgRemover from './components/BgRemover.vue'
 import PdfTools from './components/PdfTools.vue'
@@ -8,8 +9,15 @@ import logoImage from './assets/logo.png'
 
 const tabComponents = { compressor: ImageCompressor, bgremover: BgRemover, pdftools: PdfTools }
 
-// Navigation State
-const currentTab = ref('compressor')
+const route = useRoute()
+const router = useRouter()
+const currentTab = computed(() => route.meta.tab ?? 'compressor')
+const tabRoutes = {
+  compressor: 'image-compressor',
+  bgremover: 'background-remover',
+  pdftools: 'pdf-compress',
+}
+const navigateToTab = (tab) => router.push({ name: tabRoutes[tab] })
 
 // Donate Modal State
 const showDonateModal = ref(false)
@@ -227,7 +235,7 @@ const handleInstallClick = () => {
         class="flex p-1 max-w-xl mx-auto bg-slate-900/80 border border-slate-800 rounded-xl w-full"
       >
         <button
-          @click="currentTab = 'compressor'"
+          @click="navigateToTab('compressor')"
           :class="[
             'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer sm:whitespace-nowrap',
             currentTab === 'compressor'
@@ -247,7 +255,7 @@ const handleInstallClick = () => {
         </button>
 
         <button
-          @click="currentTab = 'bgremover'"
+          @click="navigateToTab('bgremover')"
           :class="[
             'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer sm:whitespace-nowrap',
             currentTab === 'bgremover'
@@ -267,7 +275,7 @@ const handleInstallClick = () => {
         </button>
 
         <button
-          @click="currentTab = 'pdftools'"
+          @click="navigateToTab('pdftools')"
           :class="[
             'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer sm:whitespace-nowrap',
             currentTab === 'pdftools'

@@ -4,13 +4,16 @@ import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import { jsPDF } from 'jspdf'
 import { isHeicFile, ensureCompatibleImage, HEIC_ACCEPT_TYPES } from '../utils/heicHelper'
+import { scrollToPreview } from '../utils/scrollHelper'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
 const showToast = inject('showToast')
 
 // ─── IMAGE TO PDF STATE ───
+const previewPanel = ref(null)
 const images = ref([])
+const outputFileName = ref('')
 const isConverting = ref(false)
 const currentProcessingItem = ref(0)
 const imgToPdfQuality = ref(90)
@@ -93,7 +96,12 @@ const handleImagesUpload = async (e) => {
   }
 
   if (addedCount > 0) {
+    if (!outputFileName.value && images.value.length > 0) {
+      const base = images.value[0].name.replace(/\.[^/.]+$/, '')
+      outputFileName.value = `${base}_converted`
+    }
     showToast('Gambar Ditambahkan', `${addedCount} gambar berhasil diunggah.`)
+    scrollToPreview(previewPanel)
   } else {
     showToast('File Tidak Valid', 'Mohon unggah file gambar atau HEIC.', 'warning')
   }
@@ -187,6 +195,7 @@ const convertToPdf = async () => {
     await generateConvertPreview(blob)
 
     showToast('Konversi Selesai!', `${images.value.length} gambar berhasil digabung menjadi PDF.`)
+    scrollToPreview(previewPanel)
   } catch (err) {
     console.error('Image to PDF error:', err)
     showToast('Gagal Konversi', 'Terjadi kesalahan saat membuat PDF.', 'error')
@@ -197,18 +206,29 @@ const convertToPdf = async () => {
 
 const downloadConvertedPdf = () => {
   if (!convertedPdfUrl.value) return
+  let finalName = (outputFileName.value || '').trim()
+  if (!finalName) {
+    const base = images.value[0]?.name ? images.value[0].name.replace(/\.[^/.]+$/, '') : `wcompress_images_${Date.now()}`
+    finalName = `${base}_converted`
+  }
+  if (finalName.toLowerCase().endsWith('.pdf')) {
+    finalName = finalName.slice(0, -4)
+  }
+  finalName = finalName.replace(/[/\\?%*:|"<>]/g, '_') || 'wcompress_images'
+
   const a = document.createElement('a')
   a.href = convertedPdfUrl.value
-  a.download = `wcompress_images_${Date.now()}.pdf`
+  a.download = `${finalName}.pdf`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
-  showToast('Unduhan Dimulai', 'File PDF hasil konversi berhasil disimpan.')
+  showToast('Unduhan Dimulai', `Menyimpan sebagai ${finalName}.pdf`)
 }
 
 const resetImages = () => {
   images.value.forEach((img) => URL.revokeObjectURL(img.url))
   images.value = []
+  outputFileName.value = ''
   if (convertedPdfUrl.value) {
     URL.revokeObjectURL(convertedPdfUrl.value)
     convertedPdfUrl.value = ''
@@ -373,6 +393,7 @@ onUnmounted(() => {
 
     <!-- Right Panel (7 cols) - Image Preview Grid or PDF Preview -->
     <div
+      ref="previewPanel"
       class="md:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-6 backdrop-blur-sm h-full transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
     >
       <div class="flex items-center justify-between pb-4 border-b border-slate-800">
@@ -515,6 +536,30 @@ onUnmounted(() => {
           agar sejajar, sementara tinggi masing-masing halaman beradaptasi dengan rasio aspek
           gambar aslinya tanpa ada pemotongan.
         </span>
+      </div>
+
+      <!-- Custom Output File Name Input (Shown when PDF is generated) -->
+      <div v-if="convertedPdfUrl" class="space-y-1.5 w-full">
+        <label class="text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Nama Berkas Unduhan
+        </label>
+        <div class="relative flex items-center rounded-xl bg-slate-950/70 border border-slate-800 focus-within:border-brand-500/80 focus-within:ring-2 focus-within:ring-brand-500/20 transition-all overflow-hidden">
+          <div class="pl-3.5 pr-2 text-slate-500 flex items-center pointer-events-none">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            v-model="outputFileName"
+            placeholder="nama-dokumen"
+            class="w-full py-2.5 bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
+          />
+          <span class="pr-3 pl-2.5 py-2 text-xs font-mono font-semibold text-brand-400/90 select-none bg-slate-900/60 border-l border-slate-800">.pdf</span>
+        </div>
       </div>
 
       <!-- Action Buttons Group (when PDF is generated) -->

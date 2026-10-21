@@ -2,6 +2,7 @@
 import { ref, watch, onUnmounted, inject, onActivated, onDeactivated } from 'vue'
 import mockImageUrl from '../assets/hahaha.jpg'
 import { isHeicFile, ensureCompatibleImage, HEIC_ACCEPT_TYPES } from '../utils/heicHelper'
+import { scrollToPreview as scrollHelper } from '../utils/scrollHelper'
 
 const showToast = inject('showToast')
 
@@ -32,15 +33,7 @@ const pendingAiProcess = ref(false)
 const previewPanel = ref(null)
 
 const scrollToPreview = () => {
-  if (window.innerWidth < 768 && previewPanel.value) {
-    const headerHeight = 80
-    const elementPosition = previewPanel.value.getBoundingClientRect().top + window.scrollY
-    const offsetPosition = elementPosition - headerHeight
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth',
-    })
-  }
+  scrollHelper(previewPanel)
 }
 
 const lastResultData = ref(null)
@@ -271,6 +264,7 @@ const renderOutput = (width, height, channels, imageData) => {
       aiIsProcessing.value = false
       pendingAiProcess.value = false
       showToast('Hapus BG Berhasil', 'Latar belakang berhasil dihilangkan!')
+      scrollToPreview()
     },
     mimeType,
     quality,

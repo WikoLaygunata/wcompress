@@ -1,12 +1,21 @@
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PdfCompressor from './PdfCompressor.vue'
 import ImageToPdf from './ImageToPdf.vue'
 import PdfDismantle from './PdfDismantle.vue'
 import PdfMerge from './PdfMerge.vue'
 
-// ─── Sub-Tab Navigation ───
-const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | 'merge'
+const route = useRoute()
+const router = useRouter()
+const activeSubTab = computed(() => route.meta.pdfSubTab ?? 'compress')
+const subTabRoutes = {
+  compress: 'pdf-compress',
+  img2pdf: 'image-to-pdf',
+  dismantle: 'pdf-dismantle',
+  merge: 'pdf-merge',
+}
+const navigateToSubTab = (subTab) => router.push({ name: subTabRoutes[subTab] })
 </script>
 
 <template>
@@ -17,7 +26,7 @@ const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | '
     >
       <button
         type="button"
-        @click="activeSubTab = 'compress'"
+        @click="navigateToSubTab('compress')"
         :class="[
           'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-0 sm:min-w-max',
           activeSubTab === 'compress'
@@ -33,7 +42,7 @@ const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | '
 
       <button
         type="button"
-        @click="activeSubTab = 'img2pdf'"
+        @click="navigateToSubTab('img2pdf')"
         :class="[
           'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-0 sm:min-w-max',
           activeSubTab === 'img2pdf'
@@ -49,7 +58,7 @@ const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | '
 
       <button
         type="button"
-        @click="activeSubTab = 'dismantle'"
+        @click="navigateToSubTab('dismantle')"
         :class="[
           'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-0 sm:min-w-max',
           activeSubTab === 'dismantle'
@@ -65,7 +74,7 @@ const activeSubTab = ref('compress') // 'compress' | 'img2pdf' | 'dismantle' | '
 
       <button
         type="button"
-        @click="activeSubTab = 'merge'"
+        @click="navigateToSubTab('merge')"
         :class="[
           'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer min-w-0 sm:min-w-max',
           activeSubTab === 'merge'

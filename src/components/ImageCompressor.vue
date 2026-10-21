@@ -13,6 +13,7 @@ import imageCompression from 'browser-image-compression'
 import mockImageUrl from '../assets/hahaha.jpg'
 import JSZip from 'jszip'
 import { isHeicFile, ensureCompatibleImage, HEIC_ACCEPT_TYPES } from '../utils/heicHelper'
+import { scrollToPreview as scrollHelper } from '../utils/scrollHelper'
 
 const showToast = inject('showToast')
 
@@ -64,15 +65,7 @@ const compareModalData = ref({
 })
 
 const scrollToPreview = () => {
-  if (window.innerWidth < 1024 && previewPanel.value) {
-    const headerHeight = 80
-    const elementPosition = previewPanel.value.getBoundingClientRect().top + window.scrollY
-    const offsetPosition = elementPosition - headerHeight
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth',
-    })
-  }
+  scrollHelper(previewPanel)
 }
 
 const triggerFileInput = () => {

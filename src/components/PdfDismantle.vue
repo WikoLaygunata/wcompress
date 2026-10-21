@@ -3,6 +3,7 @@ import { ref, onUnmounted, inject } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import JSZip from 'jszip'
+import { scrollToPreview } from '../utils/scrollHelper'
 
 // Configure PDF.js worker locally
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
@@ -10,6 +11,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 const showToast = inject('showToast')
 
 // ─── STATE ───
+const previewPanel = ref(null)
 const pdfFile = ref(null)
 const pdfName = ref('')
 const pdfPageCount = ref(0)
@@ -63,6 +65,7 @@ const handlePdfUpload = async (e) => {
 
     showToast('PDF Dimuat', `${file.name} — ${pdf.numPages} halaman siap diekstrak.`)
     loadingTask.destroy()
+    scrollToPreview(previewPanel)
   } catch (err) {
     console.error('Failed to read PDF:', err)
     showToast('Gagal Membaca PDF', 'File PDF rusak atau tidak didukung.', 'error')
@@ -120,6 +123,7 @@ const dismantlePdf = async () => {
     extractedImages.value = images
 
     showToast('Ekstraksi Selesai!', `Berhasil mengekstrak ${totalPages} halaman menjadi gambar.`)
+    scrollToPreview(previewPanel)
   } catch (err) {
     console.error('PDF dismantle error:', err)
     showToast('Gagal Mengekstrak', 'Terjadi kesalahan saat memecah PDF.', 'error')
@@ -326,6 +330,7 @@ onUnmounted(() => {
 
     <!-- Right Panel (7 cols) -->
     <div
+      ref="previewPanel"
       class="md:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col gap-6 backdrop-blur-sm h-full transition-all duration-300 hover:border-slate-700/60 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]"
     >
       <div class="flex items-center justify-between pb-4 border-b border-slate-800">
