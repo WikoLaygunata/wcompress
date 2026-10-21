@@ -518,7 +518,7 @@ const handleInstallClick = () => {
                 :class="[
                   'transition-all duration-300 ease-in-out overflow-hidden',
                   faq.isOpen
-                    ? 'max-h-40 border-t border-slate-850 opacity-100'
+                    ? 'max-h-[60vh] border-t border-slate-850 opacity-100'
                     : 'max-h-0 opacity-0',
                 ]"
               >
