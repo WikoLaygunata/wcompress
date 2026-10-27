@@ -1,4 +1,5 @@
 <script setup>
+import { Analytics } from '@vercel/analytics/vue'
 import { ref, computed, provide, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ImageCompressor from './components/ImageCompressor.vue'
@@ -697,6 +698,7 @@ const handleInstallClick = () => {
         </div>
       </div>
     </transition>
+    <Analytics />
   </div>
 </template>
 
