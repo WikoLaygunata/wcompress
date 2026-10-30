@@ -16,7 +16,7 @@ const images = ref([])
 const outputFileName = ref('')
 const isConverting = ref(false)
 const currentProcessingItem = ref(0)
-const imgToPdfQuality = ref(80)
+const imgToPdfQuality = ref(50)
 const imgFileInput = ref(null)
 const convertedPdfBlob = ref(null)
 const convertedPdfUrl = ref('')
@@ -59,8 +59,34 @@ watch(
 const convertPreviewUrls = ref([])
 
 const generateConvertPreview = async (blob) => {
-  // Use existing image URLs for preview instead of rendering PDF again
-  convertPreviewUrls.value = images.value.slice(0, 5).map(img => img.url)
+  let loadingTask
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+
+  try {
+    loadingTask = pdfjsLib.getDocument({ data: await blob.arrayBuffer() })
+    const pdf = await loadingTask.promise
+    const urls = []
+    const previewCount = Math.min(pdf.numPages, 5)
+
+    for (let i = 1; i <= previewCount; i++) {
+      const page = await pdf.getPage(i)
+      const viewport = page.getViewport({ scale: 1.5 })
+      canvas.width = viewport.width
+      canvas.height = viewport.height
+      await page.render({ canvasContext: ctx, viewport }).promise
+      urls.push(canvas.toDataURL('image/png'))
+    }
+
+    convertPreviewUrls.value = urls
+  } catch (err) {
+    console.error('Failed to generate converted PDF preview:', err)
+    showToast('Preview Tidak Tersedia', 'PDF berhasil dibuat, tetapi pratinjau tidak dapat ditampilkan.', 'warning')
+  } finally {
+    canvas.width = 0
+    canvas.height = 0
+    if (loadingTask) await loadingTask.destroy()
+  }
 }
 
 // ─── IMAGE TO PDF LOGIC ───
@@ -356,39 +382,6 @@ onUnmounted(() => {
         <span class="text-xs text-slate-400">Total gambar yang akan digabung:</span>
         <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded font-mono">{{ images.length }}</span>
       </div>
-
-      <!-- Convert Action Buttons Group -->
-      <div class="flex flex-col sm:flex-row gap-3 w-full">
-        <button
-          v-if="images.length > 0"
-          type="button"
-          @click="resetImages"
-          class="w-full sm:w-auto px-4 py-3 border border-slate-800 hover:border-slate-700 hover:text-slate-200 bg-slate-950/45 text-slate-400 hover:bg-slate-900/10 rounded-xl font-bold text-sm transition-all flex items-center gap-2 justify-center cursor-pointer active:scale-95 flex-shrink-0"
-        >
-          Hapus Semua
-        </button>
-
-        <button
-          type="button"
-          :disabled="images.length === 0 || isConverting"
-          @click="convertToPdf"
-          :class="[
-            'w-full sm:flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
-            images.length > 0 && !isConverting
-              ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]'
-              : 'bg-slate-800 text-slate-500 cursor-not-allowed',
-          ]"
-        >
-          <svg v-if="isConverting" class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <svg v-else class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          {{ isConverting ? `Mengonversi ${currentProcessingItem} dari ${images.length}...` : 'Konversi ke PDF' }}
-        </button>
-      </div>
     </div>
 
     <!-- Right Panel (7 cols) - Image Preview Grid or PDF Preview -->
@@ -505,6 +498,28 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <button
+        v-if="!convertedPdfUrl && images.length > 0"
+        type="button"
+        :disabled="isConverting"
+        @click="convertToPdf"
+        :class="[
+          'w-full py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg',
+          !isConverting
+            ? 'bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]'
+            : 'bg-slate-800 text-slate-500 cursor-not-allowed',
+        ]"
+      >
+        <svg v-if="isConverting" class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <svg v-else class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0120 9.414V19a2 2 0 01-2 2z" />
+        </svg>
+        {{ isConverting ? `Mengonversi ${currentProcessingItem} dari ${images.length}...` : 'Mulai Konversi' }}
+      </button>
+
       <!-- Size Comparison (when PDF is generated) -->
       <div v-if="convertedPdfUrl" class="flex items-center justify-between p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs">
         <div class="flex items-center gap-4">
@@ -563,8 +578,8 @@ onUnmounted(() => {
       </div>
 
       <!-- Action Buttons Group (when PDF is generated) -->
-      <div v-if="convertedPdfUrl" class="flex flex-col sm:flex-row gap-3 w-full">
-        <div class="flex gap-2 w-full sm:w-auto">
+      <div v-if="convertedPdfUrl" class="flex flex-col lg:flex-row gap-3 w-full">
+        <div class="flex gap-2 w-full lg:w-auto shrink-0">
           <button
             type="button"
             @click="backToImageEditing"
@@ -588,7 +603,7 @@ onUnmounted(() => {
         <button
           type="button"
           @click="downloadConvertedPdf"
-          class="w-full sm:flex-grow py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]"
+          class="w-full lg:w-0 lg:flex-1 min-w-0 py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg bg-brand-600 hover:bg-brand-500 text-white cursor-pointer shadow-brand-500/15 hover:shadow-brand-500/25 hover:scale-[1.01] active:scale-[0.99]"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

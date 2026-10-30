@@ -75,6 +75,13 @@ const faqs = ref([
       'Kami mendukung format gambar populer seperti JPEG, PNG, WEBP, dan format modern lainnya. Kamu bisa mengompresinya, menghapus backgroundnya secara presisi, atau menggabungkannya menjadi satu file PDF secara instan.',
     isOpen: false,
   },
+  {
+    question: 'Bagaimana jika saya masih ragu menggunakan wcompress?',
+    answer:
+      'Kamu bisa meninjau kode sumber wcompress di GitHub atau meng-host aplikasi ini sendiri.',
+    link: 'https://github.com/WikoLaygunata/wcompress',
+    isOpen: false,
+  },
 ])
 
 const toggleFaq = (index) => {
@@ -87,6 +94,7 @@ provide('showToast', showToast)
 const deferredPrompt = ref(null)
 const showInstallBanner = ref(false)
 const isIOS = ref(false)
+const isMobile = ref(false)
 const isBannerDismissed = ref(false)
 
 const isStandalone = computed(() => {
@@ -100,6 +108,7 @@ onMounted(() => {
   // Check if iOS
   const userAgent = window.navigator.userAgent.toLowerCase()
   isIOS.value = /iphone|ipad|ipod/.test(userAgent)
+  isMobile.value = /android|iphone|ipad|ipod|mobile/i.test(userAgent)
 
   // Listen for custom install prompt
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -141,8 +150,14 @@ const handleInstallClick = () => {
       'Silakan lihat panduan pemasangan di bagian bawah layar.',
       'info',
     )
-  } else {
+  } else if (deferredPrompt.value) {
     triggerInstall()
+  } else {
+    showToast(
+      'Petunjuk Pemasangan',
+      'Buka menu browser (⋮), lalu pilih "Instal aplikasi" atau "Tambahkan ke layar utama".',
+      'info',
+    )
   }
 }
 </script>
@@ -185,7 +200,7 @@ const handleInstallClick = () => {
         <div class="flex items-center gap-3">
           <!-- Install App Button (Visible on mobile/desktop when PWA is installable or on iOS) -->
           <button
-            v-if="!isStandalone && (showInstallBanner || isIOS)"
+            v-if="!isStandalone && (showInstallBanner || isMobile)"
             @click="handleInstallClick"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-600/20 active:scale-95 transition-all cursor-pointer border border-brand-500/20"
           >
@@ -523,9 +538,18 @@ const handleInstallClick = () => {
                     : 'max-h-0 opacity-0',
                 ]"
               >
-                <p class="p-3.5 text-xs text-slate-400 leading-relaxed bg-slate-950/20 font-medium">
+                <div class="p-3.5 text-xs text-slate-400 leading-relaxed bg-slate-950/20 font-medium">
                   {{ faq.answer }}
-                </p>
+                  <a
+                    v-if="faq.link"
+                    :href="faq.link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-2 inline-block text-brand-400 hover:text-brand-300 underline underline-offset-2"
+                  >
+                    Lihat kode sumber di GitHub
+                  </a>
+                </div>
               </div>
             </div>
           </div>
