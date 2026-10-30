@@ -113,6 +113,7 @@ const handlePdfUpload = async (e) => {
     showToast('PDF Dimuat', `${file.name} — ${pdf.numPages} halaman siap dikompres.`)
     loadingTask.destroy()
     scrollToPreview(previewPanel)
+    await compressPdf()
   } catch (err) {
     console.error('Failed to read PDF:', err)
     showToast('Gagal Membaca PDF', 'File PDF rusak atau tidak didukung.', 'error')
